@@ -17,5 +17,5 @@ for line in data:
     if (line.find(ip) != -1):
         interfaceName = line.split(" ")[-1]
 if interfaceName:
-   os.system('/usr/sbin/ip link set ' + interfaceName + ' xdpgeneric obj /opt/openziti/bin/xdp_tun_ingress.o sec xdp_redirect')
+   os.system('/usr/sbin/ip link set ' + interfaceName + ' xdpgeneric obj /opt/openziti/bin/zfw_xdp_tun_ingress.o sec xdp_redirect')
 

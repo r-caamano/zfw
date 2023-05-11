@@ -1,7 +1,7 @@
 [Unit]
 Description=Ziti-FW-Init
-Requires=network-online.target
-after=network-online.target
+Requires=network.target
+after=network.target
 
 [Service]
 User=root

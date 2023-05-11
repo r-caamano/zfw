@@ -41,14 +41,15 @@ for line in data:
     if (line.find(ip) != -1):
         interfaceName = line.split(" ")[-1]
 
-if os.system("/opt/openziti/bin/map_update -L -E"):
-    test1 = os.system("/opt/openziti/bin/map_update -Q")
+ingress_object_file = '/opt/openziti/bin/zfw_tc_ingress.o'
+if os.system("/opt/openziti/bin/zfw -L -E"):
+    test1 = os.system("/opt/openziti/bin/zfw -Q")
     if test1:
         sys.exit(1)
     for i in interface_list:
-        test2 = os.system("/opt/openziti/bin/map_update -X " + i + " -O /opt/openziti/bin/tproxy_splicer.o -z ingress")
-        test3 = os.system("/opt/openziti/bin//map_update -T " + i)
-        #os.system("/usr/sbin/map_update -v eth0")
+        test2 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
+        test3 = os.system("/opt/openziti/bin/zfw -T " + i)
+        #os.system("/usr/sbin/zfw -v eth0")
         if(test2 | test3):
             sys.exit(1)
         else:
@@ -59,15 +60,15 @@ if os.system("/opt/openziti/bin/map_update -L -E"):
             os.system("sudo ufw allow in on " + i + " to any")
 else:
     print("ebpf already running!");
-    os.system("/usr/sbin/map_update -F")
+    os.system("/usr/sbin/zfw -F")
     print("Flushed Table")
     if(os.path.exists("/opt/openziti/bin/user/user_rules.sh")):
         print("Adding user defined rules")
         os.system("/opt/openziti/bin/user/user_rules.sh")
     for i in interface_list:
-        test2 = os.system("/opt/openziti/bin/map_update -X " + i + " -O /opt/openziti/bin/tproxy_splicer.o -z ingress")
-        test3 = os.system("/opt/openziti/bin//map_update -T " + i)
-        #os.system("/usr/sbin/map_update -v eth0")
+        test2 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
+        test3 = os.system("/opt/openziti/bin/zfw -T " + i)
+        #os.system("/usr/sbin/zfw -v eth0")
         if(test2 | test3):
             sys.exit(1)
         else:
