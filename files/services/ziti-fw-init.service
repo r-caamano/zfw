@@ -1,0 +1,15 @@
+[Unit]
+Description=Ziti-FW-Init
+Requires=network-online.target
+after=network-online.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/openziti/bin
+ExecStart=/opt/openziti/bin/start_ebpf.py
+RestartSec=5
+Restart=on-failure
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

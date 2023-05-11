@@ -1,0 +1,16 @@
+[Unit]
+Description=Ziti-Wrapper
+BindsTo=ziti-edge-tunnel.service
+After=ziti-edge-tunnel.service
+
+[Service]
+User=root
+EnvironmentFile=/opt/openziti/etc/ziti-edge-tunnel.env
+ExecStartPre=/opt/openziti/bin/start_ebpf.py
+ExecStart=/opt/openziti/bin/tunnwrapper
+ExecStartPost=-/opt/openziti/bin/set_xdp_redirect.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=ziti-edge-tunnel.service
