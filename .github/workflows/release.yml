@@ -63,37 +63,71 @@ jobs:
           version: ${{ steps.version.outputs.version }}
           arch: 'amd64'
           desc: '${{ env.DESC }}'
-      
-      - name: Create release
-        uses: actions/create-release@v1
-        id: release
+  
+  
+      - uses: actions/upload-artifact@v3
         with:
-          draft: false
-          prerelease: false
-          release_name: v${{ steps.version.outputs.version }}
-          tag_name: v${{ steps.version.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          
-      - name: Upload a built artifact for release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.release.outputs.upload_url }}
           name: artifact-deb
           path: |
             ./*.deb
-          asset_content_type: ${{ matrix.asset_content_type }}
       
-     # - name: Upload Release Asset
-     #   id: upload-release-asset
-     #   uses: actions/upload-release-asset@v1
-     #   env:
-     #     GITHUB_TOKEN: ${{ github.token }}
-     #   with:
-     #     upload_url: ${{ steps.release.outputs.upload_url }}
-     #     asset_path: ${{ steps.vars.outputs.asset_name }}
-     #     asset_name: ${{ steps.vars.outputs.asset_name }}
-     #     asset_content_type: ${{ matrix.asset_content_type }}
+ create-release:
+    runs-on: ubuntu-22.04
+    needs:
+      - build-linux-packages
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.build-linux-packages.outputs.version }}
+          release_name: ${{ needs.build-linux-packages.outputs.version }}
+          draft: false
+          prerelease: false
+
+      - name: Write upload_url to file
+        run: echo '${{ steps.create-release.outputs.upload_url }}' > upload_url.txt
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: create-release
+          path: upload_url.txt
+
+ upload-linux-packages:
+    runs-on: ubuntu-22.04
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - pkg: deb
+            asset_content_type: application/vnd.debian.binary-package
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-${{ matrix.pkg }}
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: create-release
+
+      - id: vars
+        run: |
+          echo "::set-output name=upload_url::$(cat upload_url.txt)"
+          echo "::set-output name=asset_name::$(ls *.${{ matrix.pkg }} | head -n 1)"
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.vars.outputs.upload_url }}
+          asset_path: ${{ steps.vars.outputs.asset_name }}
+          asset_name: ${{ steps.vars.outputs.asset_name }}
+          asset_content_type: ${{ matrix.asset_content_type }}
