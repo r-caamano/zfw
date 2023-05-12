@@ -73,9 +73,9 @@ jobs:
           cp -p files/bin/zfw_tunnwrapper .debpkg/opt/openziti/bin/
           cp -p files/bin/zfw_tc_outbound_track.o .debpkg/opt/openziti/bin/
           cp -p files/bin/zfw .debpkg/opt/openziti/bin/zfw
-          cp -p files/scripts/start_ebpf.py .dpmpkg/opt/openziti/bin/
-          cp -p files/scripts/set_xdp_redirect.py .dpmpkg/opt/openziti/bin/
-          cp -p files/scripts/user_rules.sh .dpmpkg/opt/openziti/bin/user/
+          cp -p files/scripts/start_ebpf.py .debpkg/opt/openziti/bin/
+          cp -p files/scripts/set_xdp_redirect.py .debpkg/opt/openziti/bin/
+          cp -p files/scripts/user_rules.sh .debpkg/opt/openziti/bin/user/
           chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py
           chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
           chmod +x .debpkg/opt/openziti/bin/user_rules.sh
