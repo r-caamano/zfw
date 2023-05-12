@@ -35,7 +35,9 @@ jobs:
           
           
   build-linux-packages:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    needs:
+      - build_release
     steps:
       - uses: actions/checkout@v3
       - uses: jiro4989/setup-nim-action@v1
