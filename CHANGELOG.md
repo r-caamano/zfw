@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. The format 
 ---
 ## [0.1.0] - 2023-05-12
 
-### 
+###
 
-- Added initial code
+- Added initial code.
 
