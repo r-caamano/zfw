@@ -12,31 +12,31 @@ env:
   DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers'
   
 jobs:
-  build-artifact:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install EBPF Packages
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get upgrade -yqq
-          sudo apt-get install -y jq gcc clang libc6-dev-i386 libbpfcc-dev libbpf-dev libjson-c-dev
-      - name:  Compile Object file from Source
-        run: |
-          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
-          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
-          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_tc_outbound_track.o src/zfw_tc_outbound_track.c
-          clang -O2 -Wall -Wextra -o files/bin/zfw src/zfw.c
-          gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
-      - name: Get version
-        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
-        id: version
+#  build-artifact:
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      matrix:
+#        os:
+#          - ubuntu-22.04
+#    steps:
+#      - uses: actions/checkout@v3
+#      - name: Install EBPF Packages
+#        run: |
+#          sudo apt-get update -qq
+#          sudo apt-get upgrade -yqq
+#          sudo apt-get install -y jq gcc clang libc6-dev-i386 libbpfcc-dev libbpf-dev libjson-c-dev
+#      - name:  Compile Object file from Source
+#        run: |
+#          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
+#          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
+#          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_tc_outbound_track.o src/zfw_tc_outbound_track.c
+#          clang -O2 -Wall -Wextra -o files/bin/zfw src/zfw.c
+#          gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
+#      - name: Get version
+#        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
+#       id: version
         
-  build-linux-packages:
+ build-linux-packages:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -88,9 +88,9 @@ jobs:
           arch: 'amd64'
           desc: '${{ env.DESC }}'
       
-      - uses: actions/download-artifact@v3
-        with:
-          name: artifact-${{ matrix.pkg }}
+      #- uses: actions/download-artifact@v3
+      #  with:
+      #    name: artifact-${{ matrix.pkg }}
 
       - uses: actions/upload-artifact@v3
         with:
