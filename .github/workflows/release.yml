@@ -66,7 +66,6 @@ jobs:
           arch: 'amd64'
           depends: 'ziti-edge-tunnel (>= 0.21.0), git'
           desc: 'An ebpf based fw for openziti edge-routers and tunnelers'
-      
       - name: Create release
         uses: actions/create-release@v1
         id: release
