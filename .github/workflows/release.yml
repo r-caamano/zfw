@@ -36,6 +36,7 @@ jobs:
           mkdir -p .debpkg/opt/openziti/bin/user
           mkdir -p .debpkg/opt/openziti/etc
           mkdir -p .debpkg/etc
+          mkdir -p .debpkg/usr/sbin
           cp files/services/ziti-fw-init.service .debpkg/etc/
           cp files/services/ziti-wrapper.service .debpkg/etc/
           cp files/json/ebpf_config.json.sample .debpkg/opt/openziti/etc/
@@ -50,7 +51,7 @@ jobs:
           cp files/bin/zfw_tc_outbound_track.o  .debpkg/opt/openziti/bin/
           cp files/bin/zfw_tunnwrapper  .debpkg/opt/openziti/bin/
           cp files/bin/zfw_xdp_tun_ingress.o  .debpkg/opt/openziti/bin/
-          mkdir -p .debpkg/usr/sbin
+          
           ln -s .debpkg/opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
           
       - name: Get version
