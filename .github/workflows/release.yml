@@ -27,7 +27,7 @@ jobs:
           clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
           clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
           clang -O2 -Wall -Wextra -o files/bin/zfw src/zfw.c
-          gcc -o zfw_tunnwrapper zfw_tunnel_wrapper.c-l json-c 
+          gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c 
           
           
       
