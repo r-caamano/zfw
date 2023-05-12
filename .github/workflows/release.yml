@@ -64,12 +64,27 @@ jobs:
           arch: 'amd64'
           desc: '${{ env.DESC }}'
       
-
-      - uses: actions/upload-artifact@v3
+      - name: Create release
+        uses: actions/create-release@v1
+        id: release
         with:
+          draft: false
+          prerelease: false
+          release_name: v${{ steps.version.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          
+      - name: Upload a built artifact for release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
           name: artifact-deb
           path: |
             ./*.deb
+          asset_content_type: ${{ matrix.asset_content_type }}
       
      # - name: Upload Release Asset
      #   id: upload-release-asset
