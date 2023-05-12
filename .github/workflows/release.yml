@@ -20,9 +20,6 @@ jobs:
           - ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: jiro4989/setup-nim-action@v1
-        with:
-          zfw-version: ${{ env.ZFW_VERSION }}
       - name: Install EBPF Packages
         run: |
           sudo apt-get update -qq
@@ -43,9 +40,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: jiro4989/setup-nim-action@v1
-        with:
-          zfw-version: ${{ env.ZFW_VERSION }}
       - name: Install EBPF Packages
         run: |
           sudo apt-get update -qq
@@ -85,7 +79,7 @@ jobs:
           package: ${{ env.APP_NAME }}
           package_root: .debpkg
           maintainer: ${{ env.MAINTAINER }}
-          version: ${{ github.ref }}
+          version: ${{ steps.version.outputs.version }}
           arch: 'amd64'
           desc: '${{ env.DESC }}'
 
