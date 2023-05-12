@@ -78,7 +78,7 @@ jobs:
           cp -p files/scripts/user_rules.sh .debpkg/opt/openziti/bin/user/
           chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py
           chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
-          chmod +x .debpkg/opt/openziti/bin/user_rules.sh
+          chmod +x .debpkg/opt/openziti/bin/user/user_rules.sh
           ln -s .debpkg/opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
       - uses: jiro4989/build-deb-action@v2
         with:
