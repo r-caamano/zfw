@@ -26,21 +26,6 @@ else:
     print("Missing /opt/openziti/etc/ebpf_config.json can't set ebpf interface config")
     sys.exit(1)
 
-process = subprocess.Popen(['ip', 'add'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-out, err = process.communicate()
-data = out.decode().splitlines()
-interfaceName = None
-ip = '100.64.0.1'
-iprange = os.environ.get('ZITI_DNS_IP_RANGE')
-if(iprange):
-    print('Reading ip from ZITI_DNS_IP_RANGE: ' + iprange)
-    ip = iprange.split('/')[0]
-else:
-    print('Using default tun ip: ' + ip)
-for line in data:
-    if (line.find(ip) != -1):
-        interfaceName = line.split(" ")[-1]
-
 ingress_object_file = '/opt/openziti/bin/zfw_tc_ingress.o'
 if os.system("/opt/openziti/bin/zfw -L -E"):
     test1 = os.system("/opt/openziti/bin/zfw -Q")
@@ -53,10 +38,6 @@ if os.system("/opt/openziti/bin/zfw -L -E"):
         if(test2 | test3):
             sys.exit(1)
         else:
-            if interfaceName:
-                os.system("sudo ufw route allow in on " + i +" out on " + interfaceName)
-            else:
-                print("can't determin tun if may need to enable forwading maunally if running ufw")
             os.system("sudo ufw allow in on " + i + " to any")
 else:
     print("ebpf already running!");
@@ -72,9 +53,5 @@ else:
         if(test2 | test3):
             sys.exit(1)
         else:
-            if interfaceName:
-                os.system("sudo ufw route allow in on " + i +" out on " + interfaceName)
-            else:
-                print("can't determin tun if may need to enable forwading maunally if running ufw")
             os.system("sudo ufw allow in on " + i + " to any")
     sys.exit(0)
