@@ -73,22 +73,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           
-          
-  upload-linux-packages:
-    runs-on: ubuntu-22.04
-    needs: build-linux-packages
-    strategy:
-      matrix:
-        include:
-          - pkg: deb
-            asset_content_type: application/vnd.debian.binary-package
-          
-      #- name: Upload a built artifact for release
-      #  uses: actions/upload-release-asset@v1
-      #  env:
-      #    GITHUB_TOKEN: ${{ github.token }}
-      #  with:
-      #    upload_url: ${{ steps.release.outputs.upload_url }}
-      #    asset_path: tproxy_splicer.tar.gz
-      #    asset_name: tproxy_splicer.tar.gz
-      #    asset_content_type: application/gzip
