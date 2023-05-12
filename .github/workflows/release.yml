@@ -1,0 +1,89 @@
+---
+name: release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs: 
+  build_release:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+          
+      - name: Install EBPF Packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get upgrade -yqq
+          sudo apt-get install -y jq gcc clang libc6-dev-i386 libbpfcc-dev libbpf-dev libjson-c-dev
+          
+      - name:  Compile Object file from Source
+        run: |
+          clang -g -O2 -Wall -Wextra -target bpf -c -o files/objects/zfw_tc_ingress.o src/zfw_tc_ingress.c
+          clang -g -O2 -Wall -Wextra -target bpf -c -o files/objects/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
+          clang -O2 -Wall -Wextra -o files/objects/zfw src/zfw.c
+          gcc -o zfw_tunnwrapper zfw_tunnel_wrapper.c-l json-c 
+          
+          
+      
+      - name: create deb amd64 zfw
+        run: 
+          mkdir -p .debpkg/opt/openziti/bin/user
+          mkdir -p .debpkg/opt/openziti/etc
+          mkdir -p .debpkg/etc
+          cp files/services/ziti-fw-init.service .debpkg/etc/
+          cp files/services/ziti-wrapper.service .debpkg/etc/
+          cp files/json/ebpf_config.json.sample .debpkg/opt/openziti/etc/
+          cp files/scripts/user_rules.sh .debpkg/opt/openziti/bin/user
+          cp files/scripts/start_ebpf.py .debpkg/opt/openziti/bin/
+          cp files/scripts/set_xdp_redirect.py .debpkg/opt/openziti/bin/
+          chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py  
+          chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
+          chmod +x .debpkg/opt/openziti/bin/user_rules.sh
+          cp files/bin/zfw .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_tc_ingress.o  .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_tc_outbound_track.o  .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_tunnwrapper  .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_xdp_tun_ingress.o  .debpkg/opt/openziti/bin/
+          mkdir -p .debpkg/usr/sbin
+          ln -s .debpkg/opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
+          
+      - name: Get version
+        run: echo "version=`files/objects/zfw -V`" >> $GITHUB_OUTPUT
+        id: version
+        
+      - uses: jiro4989/build-deb-action@v2
+        with:
+          package: zfw
+          package_root: .debpkg
+          maintainer: Robert Caamano
+          version: version
+          arch: 'amd64'
+          depends: 'ziti-edge-tunnel (>= 0.21.0), git'
+          desc: 'An ebpf based fw for openziti edge-routers and tunnelers'
+      
+      - name: Create release
+        uses: actions/create-release@v1
+        id: release
+        with:
+          draft: false
+          prerelease: false
+          release_name: v${{ steps.version.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          
+      #- name: Upload a built artifact for release
+      #  uses: actions/upload-release-asset@v1
+      #  env:
+      #    GITHUB_TOKEN: ${{ github.token }}
+      #  with:
+      #    upload_url: ${{ steps.release.outputs.upload_url }}
+      #    asset_path: tproxy_splicer.tar.gz
+      #    asset_name: tproxy_splicer.tar.gz
+      #    asset_content_type: application/gzip
