@@ -24,9 +24,9 @@ jobs:
           
       - name:  Compile Object file from Source
         run: |
-          clang -g -O2 -Wall -Wextra -target bpf -c -o files/objects/zfw_tc_ingress.o src/zfw_tc_ingress.c
-          clang -g -O2 -Wall -Wextra -target bpf -c -o files/objects/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
-          clang -O2 -Wall -Wextra -o files/objects/zfw src/zfw.c
+          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
+          clang -g -O2 -Wall -Wextra -target bpf -c -o files/bin/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
+          clang -O2 -Wall -Wextra -o files/bin/zfw src/zfw.c
           gcc -o zfw_tunnwrapper zfw_tunnel_wrapper.c-l json-c 
           
           
@@ -54,7 +54,7 @@ jobs:
           ln -s .debpkg/opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
           
       - name: Get version
-        run: echo "version=`files/objects/zfw -V`" >> $GITHUB_OUTPUT
+        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
         id: version
         
       - uses: jiro4989/build-deb-action@v2
