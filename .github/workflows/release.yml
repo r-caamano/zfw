@@ -38,7 +38,21 @@ jobs:
           mkdir -p .debpkg/etc
           mkdir -p .debpkg/usr/sbin
           
-          
+      - name: copy to deb amd64
+          cp files/services/ziti-fw-init.service .debpkg/etc/
+          cp files/services/ziti-wrapper.service .debpkg/etc/
+          cp files/json/ebpf_config.json.sample .debpkg/opt/openziti/etc/
+          cp files/scripts/user_rules.sh .debpkg/opt/openziti/bin/user
+          cp files/scripts/start_ebpf.py .debpkg/opt/openziti/bin/
+          cp files/scripts/set_xdp_redirect.py .debpkg/opt/openziti/bin/
+          chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py  
+          chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
+          chmod +x .debpkg/opt/openziti/bin/user_rules.sh
+          cp files/bin/zfw .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_tc_ingress.o  .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_tc_outbound_track.o  .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_tunnwrapper  .debpkg/opt/openziti/bin/
+          cp files/bin/zfw_xdp_tun_ingress.o  .debpkg/opt/openziti/bin/    
           ln -s .debpkg/opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
           
       - name: Get version
