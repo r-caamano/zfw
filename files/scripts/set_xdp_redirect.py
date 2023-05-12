@@ -2,6 +2,17 @@
 import subprocess
 import os
 
+def xdp_status(interface):
+    process = subprocess.Popen(['/usr/sbin/ip', 'link', 'show', interface], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    data = out.decode().splitlines()
+    if(len(data)):
+        for line in data:
+            if(line.find('prog/xdp') >= 0):
+                return True
+            else:
+                return False
+
 process = subprocess.Popen(['ip', 'add'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 out, err = process.communicate()
 data = out.decode().splitlines()
@@ -17,5 +28,6 @@ for line in data:
     if (line.find(ip) != -1):
         interfaceName = line.split(" ")[-1]
 if interfaceName:
-   os.system('/usr/sbin/ip link set ' + interfaceName + ' xdpgeneric obj /opt/openziti/bin/zfw_xdp_tun_ingress.o sec xdp_redirect')
+    if(not xdp_status(interfaceName)): 
+        os.system('/usr/sbin/ip link set ' + interfaceName + ' xdpgeneric obj /opt/openziti/bin/zfw_xdp_tun_ingress.o sec xdp_redirect')
 

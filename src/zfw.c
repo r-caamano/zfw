@@ -1037,7 +1037,7 @@ void interface_diag()
         if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
             get_index(address->ifa_name, &idx);
-            if(idx >= MAX_IF_ENTRIES){
+            if(idx >= MAX_IF_ENTRIES && strncmp(address->ifa_name,"tun", 3)){
                 address = address->ifa_next;
                 continue;
             }
@@ -1244,7 +1244,7 @@ bool interface_map()
         if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
             get_index(address->ifa_name, &idx);
-            if(idx >= MAX_IF_ENTRIES){
+            if((idx >= MAX_IF_ENTRIES) && strncmp(address->ifa_name,"tun", 3)){
                 address = address->ifa_next;
                 continue;
             }

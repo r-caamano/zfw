@@ -4,6 +4,14 @@ import sys
 import json
 import subprocess
 
+def tc_status(interface):
+    process = subprocess.Popen(['tc', 'filter', 'show', 'dev', interface, 'ingress'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    data = out.decode().splitlines()
+    if(len(data)):
+        return True
+    else:
+        return False
 
 interface_list = [];
 if(os.path.exists('/opt/openziti/etc/ebpf_config.json')):
@@ -34,7 +42,6 @@ if os.system("/opt/openziti/bin/zfw -L -E"):
     for i in interface_list:
         test2 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
         test3 = os.system("/opt/openziti/bin/zfw -T " + i)
-        #os.system("/usr/sbin/zfw -v eth0")
         if(test2 | test3):
             sys.exit(1)
         else:
@@ -47,11 +54,11 @@ else:
         print("Adding user defined rules")
         os.system("/opt/openziti/bin/user/user_rules.sh")
     for i in interface_list:
-        test2 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
-        test3 = os.system("/opt/openziti/bin/zfw -T " + i)
-        #os.system("/usr/sbin/zfw -v eth0")
-        if(test2 | test3):
-            sys.exit(1)
+        if(not tc_status(i)):
+          test2 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
+          test3 = os.system("/opt/openziti/bin/zfw -T " + i)
+          if(test2 | test3):
+              sys.exit(1)
         else:
             os.system("sudo ufw allow in on " + i + " to any")
     sys.exit(0)
