@@ -91,7 +91,7 @@ jobs:
 
   upload-linux-packages:
     runs-on: ubuntu-latest
-    #needs: create-release
+    needs: build-linux-packages
     strategy:
       matrix:
         include:
