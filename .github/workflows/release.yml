@@ -78,6 +78,9 @@ jobs:
         goos: [linux]
         goarch: [amd64, arm64]
     steps:
+      - name: Get version
+        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_ENV
+        id: version
       - name: Create release
         uses: actions/create-release@v1
         id: release
