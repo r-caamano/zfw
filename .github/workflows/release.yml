@@ -158,8 +158,8 @@ jobs:
         with:
           draft: false
           prerelease: false
-          release_name: v${{ needs.build_release.outputs.version }}
-          tag_name: v${{ needs.build_release.outputs.version }}
+          release_name: v${{ needs.build_amd64_release.outputs.version }}
+          tag_name: v${{ needs.build_amd64_release.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           
