@@ -8,7 +8,7 @@ on:
 env:
   APP_NAME: 'zfw'
   MAINTAINER: 'r-caamano'
-  DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers'
+  DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers.'
 
 jobs: 
   build_amd64_release:
