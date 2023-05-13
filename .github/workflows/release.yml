@@ -94,6 +94,11 @@ jobs:
           sudo apt-get upgrade -yqq
           sudo apt-get install -y jq gcc clang libbpfcc-dev libbpf-dev libjson-c-dev
           sudo apt-get install -y linux-headers-$(uname -r)
+          sudo ln -s /usr/include/aarch64-linux-gnu/asm /usr/include/asm
+          sudo ln -s /usr/include/aarch64-linux-gnu/bits /usr/include/bits
+          sudo ln -s /usr/include/aarch64-linux-gnu/sys /usr/include/sys
+          sudo ln -s /usr/include/aarch64-linux-gnu/gnu /usr/include/gnu
+   
       - name:  Compile Object file from Source
         run: | 
           clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
