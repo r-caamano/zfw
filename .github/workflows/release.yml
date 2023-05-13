@@ -11,14 +11,14 @@ env:
   DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers.'
 
 jobs: 
-  build_release:
+  build_amd64_release:
     runs-on: ubuntu-22.04
     outputs:
       version: ${{ steps.version.outputs.version }}
     strategy:
       matrix:
         goos: [linux]
-        goarch: [amd64, arm64]
+        goarch: [amd64]
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -72,7 +72,71 @@ jobs:
               desc: '${{ env.DESC }}'        
       - uses: actions/upload-artifact@v3
         with:
-          name: artifact-deb
+          name: artifact-amd64-deb
+          path: |
+            ./*.deb
+  
+  build_arm64_release:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [arm64]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: uraimo/run-on-arch-action@v2
+        name: Run commands
+        id: runcmd
+        with:
+          arch: aarch64
+          distro: ubuntu22.04
+          run: |
+            sudo apt-get update -qq
+            sudo apt-get upgrade -yqq
+            sudo apt-get install -y jq gcc clang libbpfcc-dev libbpf-dev libjson-c-dev
+            clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
+            clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
+            clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/-Wextra -target bpf -c -o files/bin/zfw_tc_outbound_track.o src/zfw_tc_outbound_track.c
+            clang -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -o files/bin/zfw src/zfw.c
+            gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
+      - name: Get version
+        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
+        id: version
+        
+      - name: Deb Object File
+        run: |
+          mkdir -p .debpkg/opt/openziti/bin/user
+          mkdir -p .debpkg/opt/openziti/etc
+          mkdir -p .debpkg/etc/systemd/system
+          mkdir -p .debpkg/usr/sbin
+          cp -p files/bin/zfw_xdp_tun_ingress.o .debpkg/opt/openziti/bin/
+          cp -p files/bin/zfw_tc_ingress.o .debpkg/opt/openziti/bin/
+          cp -p files/bin/zfw_tunnwrapper .debpkg/opt/openziti/bin/
+          cp -p files/bin/zfw_tc_outbound_track.o .debpkg/opt/openziti/bin/
+          cp -p files/bin/zfw .debpkg/opt/openziti/bin/zfw
+          cp -p files/scripts/start_ebpf.py .debpkg/opt/openziti/bin/
+          cp -p files/scripts/set_xdp_redirect.py .debpkg/opt/openziti/bin/
+          cp -p files/scripts/user_rules.sh.sample .debpkg/opt/openziti/bin/user/
+          cp -p files/json/ebpf_config.json.sample .debpkg/opt/openziti/etc/
+          cp -p files/services/ziti-fw-init.service .debpkg/etc/systemd/system/
+          cp -p files/services/ziti-wrapper.service .debpkg/etc/systemd/system/
+          chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py
+          chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
+          chmod +x .debpkg/opt/openziti/bin/user/user_rules.sh.sample
+          ln -s /opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
+      - uses: jiro4989/build-deb-action@v2
+        with:
+              package: ${{ env.APP_NAME }}
+              package_root: .debpkg
+              maintainer: ${{ env.MAINTAINER }}
+              version: ${{ steps.version.outputs.version }}
+              arch: ${{ matrix.goarch }}
+              desc: '${{ env.DESC }}'        
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-arm64-deb
           path: |
             ./*.deb
           
@@ -81,7 +145,7 @@ jobs:
     outputs:
       upload_url: ${{ steps.release.outputs.upload_url }}
     needs:
-      - build_release
+      - build_amd64_release
     strategy:
       matrix:
         goos: [linux]
@@ -100,22 +164,27 @@ jobs:
   deploy_packages:
     runs-on: ubuntu-22.04
     needs:
-      - build_release
+      - build_amd64_release
+      - build_arm64_release
       - deploy_release
     strategy:
       matrix:
         goos: [linux]
         goarch: [amd64, arm64]
     steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: artifact-deb
+     - name: Get ${{ goarch }} artifact
+       uses: actions/download-artifact@v3
+          with:
+            if: matrix.goarch == 'amd64'
+            name: artifact-amd64-deb
+            if: matrix.goarch == 'arm64'
+            name: artifact-arm64-deb
       - name: Upload built deb artifacts
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ needs.deploy_release.outputs.upload_url }}
-          asset_path: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.version }}_${{ matrix.goarch }}.deb
-          asset_name: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.version }}_${{ matrix.goarch }}.deb
+          asset_path: ${{ env.APP_NAME }}_${{ needs.build_amd64_release.outputs.version }}_${{ matrix.goarch }}.deb
+          asset_name: ${{ env.APP_NAME }}_${{ needs.build_amd64_release.outputs.version }}_${{ matrix.goarch }}.deb
           asset_content_type: application/vnd.debian.binary-package
