@@ -52,11 +52,11 @@ jobs:
           cp -p files/bin/zfw .debpkg/opt/openziti/bin/zfw
           cp -p files/scripts/start_ebpf.py .debpkg/opt/openziti/bin/
           cp -p files/scripts/set_xdp_redirect.py .debpkg/opt/openziti/bin/
-          cp -p files/scripts/user_rules.sh .debpkg/opt/openziti/bin/user/
+          cp -p files/scripts/user_rules.sh.sample .debpkg/opt/openziti/bin/user/
           cp -p files/json/ebpf_config.json.sample .debpkg/opt/openziti/etc
           chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py
           chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
-          chmod +x .debpkg/opt/openziti/bin/user/user_rules.sh
+          chmod +x .debpkg/opt/openziti/bin/user/user_rules.sh.sample
           ln -s /opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
       - uses: jiro4989/build-deb-action@v2
         with:
