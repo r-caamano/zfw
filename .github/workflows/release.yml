@@ -13,6 +13,8 @@ env:
 jobs: 
   build_release:
     runs-on: ubuntu-22.04
+    outputs:
+      output1: ${{ steps.version.outputs.version }}
     strategy:
       matrix:
         goos: [linux]
@@ -36,7 +38,7 @@ jobs:
           gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
       
       - name: Get version
-        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_ENV
+        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
         id: version
         
       - name: Deb Object File
@@ -65,9 +67,14 @@ jobs:
               package: ${{ env.APP_NAME }}
               package_root: .debpkg
               maintainer: ${{ env.MAINTAINER }}
-              version: ${{ env.version }}
+              version: ${{ steps.version.outputs.version }}
               arch: ${{ matrix.goarch }}
-              desc: '${{ env.DESC }}'
+              desc: '${{ env.DESC }}'        
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-deb
+          path: |
+            ./*.deb
 
   deploy_release:
     runs-on: ubuntu-22.04
@@ -78,26 +85,25 @@ jobs:
         goos: [linux]
         goarch: [amd64, arm64]
     steps:
-      - name: Get version
-        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_ENV
-        id: version
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-deb
       - name: Create release
         uses: actions/create-release@v1
         id: release
         with:
           draft: false
           prerelease: false
-          release_name: v${{ env.version }}
-          tag_name: v${{ env.version }}
+          release_name: v${{ needs.build_release.outputs.output1 }}
+          tag_name: v${{ needs.build_release.outputs.output1 }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
       - name: Upload a built artifact for release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.release.outputs.upload_url }}
-          asset_path: ${{ env.APP_NAME }}_${{ env.version }}_${{ matrix.goarch }}.deb
-          asset_name: ${{ env.APP_NAME }}_${{ env.version }}_${{ matrix.goarch }}.deb
+          asset_path: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_${{ matrix.goarch }}.deb
+          asset_name: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_${{ matrix.goarch }}.deb
           asset_content_type: application/vnd.debian.binary-package
