@@ -82,7 +82,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     strategy:
       matrix:
-        goos: [linux]
+        goos: [linux/arm64]
         goarch: [arm64]
     steps:
       - uses: actions/checkout@v3
