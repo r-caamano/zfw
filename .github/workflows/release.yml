@@ -69,6 +69,15 @@ jobs:
               arch: ${{ matrix.goarch }}
               desc: '${{ env.DESC }}'
 
+  deploy_release:
+    runs-on: ubuntu-22.04
+    needs:
+      - build_release
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, arm64]
+    steps:
       - name: Create release
         uses: actions/create-release@v1
         id: release
