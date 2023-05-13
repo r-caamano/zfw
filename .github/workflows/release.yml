@@ -77,14 +77,13 @@ jobs:
             ./*.deb
   
   build_arm64_release:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, ARM64]
     outputs:
       version: ${{ steps.version.outputs.version }}
     strategy:
-      matrix:
+      matrix: 
         goos: [linux]
         goarch: [arm64]
-        platform: [linux/arm64]
     steps:
       - name: Check out code
         uses: actions/checkout@v3
