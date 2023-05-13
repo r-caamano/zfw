@@ -736,166 +736,111 @@ int run(){
     while(true)
     {
         memset(&event_buffer, 0, EVENT_BUFFER_SIZE);
-        ret = recv(event_socket, event_buffer, EVENT_BUFFER_SIZE,0);
-        printf("\n\nret=%d\n",ret);
-        if ((ret == -1) || (ret == 0)) {
-            perror("read");
-            return -1;
+        char ch[1];
+        int count = 0;
+        while((read(event_socket, ch, 1 ) != 0) && count < EVENT_BUFFER_SIZE){
+            if(ch[0] != '\n'){
+                printf("%c", ch[0]);
+                event_buffer[count] = ch[0];
+            }else{
+                printf("%c\n", ch[0]);
+                event_buffer[count] = '\0';
+                break;
+            }
+            count++;
         }
-
+        
         /* Ensure buffer is 0-terminated. */
         event_buffer[EVENT_BUFFER_SIZE - 1] = '\0';
         char *event_jString = (char*)event_buffer;
-        signed char ch;
-        /*for(int b = 0; b < EVENT_BUFFER_SIZE; b++){
-            ch = event_jString[b];
-            if(ch == '\n'){
-                printf("newline at: %d\n", b);
-            }
-        }*/
-        char *event2 = strstr(event_jString, "\n{");
-        char *ev_list[2] = {0}; 
-        bool multi_obj = false;
-        if(event2)
+        if(strlen(event_jString))
         {
-            event2 = event2 + 1;
-            printf("Multiple objects in buffer: parsing\n");
-            char event1[2048];
-            get_string(event_jString,event1);
-            printf("Event1=%s\n", event1);
-            printf("Event2=%s\n", event2);
-            ev_list[0]= event1;
-            ev_list[1]= event2;
-        }
-        else{
-            ev_list[0]= event_jString;
-        }
-
-        for(int e = 0 ;e < 2 ;e++){
-            if(ev_list[e])
-            {
-                struct json_object *event_jobj = json_tokener_parse(ev_list[e]);
-                struct json_object *op_obj = json_object_object_get(event_jobj, "Op");
-                if(op_obj){
-                    char operation[strlen(json_object_get_string(op_obj)) + 1];
-                    sprintf(operation, "%s", json_object_get_string(op_obj));
-                    printf("operation = %s\n",operation);
-                    printf("%s\n\n",json_object_to_json_string_ext(event_jobj,JSON_C_TO_STRING_PLAIN));
-                    if(!strcmp("status", operation)){
-                        printf("Received Status Event\n");
-                        // send command to dump tunnel services to file
-                        ret = send_command(cmdbytes, sizeof(cmdbytes));
-                        if (ret == -1)
-                        {
-                            return -1;
+            struct json_object *event_jobj = json_tokener_parse(event_jString);
+            struct json_object *op_obj = json_object_object_get(event_jobj, "Op");
+            if(op_obj){
+                char operation[strlen(json_object_get_string(op_obj)) + 1];
+                sprintf(operation, "%s", json_object_get_string(op_obj));
+                printf("operation = %s\n",operation);
+                printf("%s\n\n",json_object_to_json_string_ext(event_jobj,JSON_C_TO_STRING_PLAIN));
+                if(!strcmp("status", operation)){
+                    printf("Received Status Event\n");
+                    // send command to dump tunnel services to file
+                    ret = send_command(cmdbytes, sizeof(cmdbytes));
+                    if (ret == -1)
+                    {
+                        return -1;
+                    }
+                    struct json_object *status_obj = json_object_object_get(event_jobj, "Status");
+                    
+                    if(status_obj){
+                        if(tun_fd == -1){
+                            open_tun_map();
                         }
-                        struct json_object *status_obj = json_object_object_get(event_jobj, "Status");
-                        
-                        if(status_obj){
-                            if(tun_fd == -1){
-                                open_tun_map();
+                        uint32_t key = 0;
+                        struct ifindex_tun o_tunif;
+                        tun_map.key = (uint64_t)&key;
+                        tun_map.value = (uint64_t)&o_tunif;
+                        tun_map.map_fd = tun_fd;
+                        int lookup = syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &tun_map, sizeof(tun_map));
+                        if (!lookup)
+                        {   
+                            if((sizeof(o_tunif.cidr) > 0) && (sizeof(o_tunif.mask) >0)){
+                                sprintf(tunip_string, "%s" , o_tunif.cidr);
+                                sprintf(tunip_mask_string, "%s", o_tunif.mask);
+                                zfw_update(tunip_string, tunip_mask_string, "1", "65535", "tcp", "-I");
+                                zfw_update(tunip_string, tunip_mask_string, "1", "65535", "udp", "-I");
                             }
-                            uint32_t key = 0;
-                            struct ifindex_tun o_tunif;
-                            tun_map.key = (uint64_t)&key;
-                            tun_map.value = (uint64_t)&o_tunif;
-                            tun_map.map_fd = tun_fd;
-                            //transp_map.flags = BPF_ANY;
-                            int lookup = syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &tun_map, sizeof(tun_map));
-                            if (!lookup)
-                            {   
-                                if((sizeof(o_tunif.cidr) > 0) && (sizeof(o_tunif.mask) >0)){
-                                    sprintf(tunip_string, "%s" , o_tunif.cidr);
-                                    sprintf(tunip_mask_string, "%s", o_tunif.mask);
-                                    zfw_update(tunip_string, tunip_mask_string, "1", "65535", "tcp", "-I");
-                                    zfw_update(tunip_string, tunip_mask_string, "1", "65535", "udp", "-I");
-                                }
-                            }
-                            /*struct json_object *ipinfo_obj = json_object_object_get(status_obj, "IpInfo");
-                            struct json_object *tunmask_obj = json_object_object_get(status_obj, "TunIpv4Mask");
-                            if(ipinfo_obj){
-                                struct json_object *ip_obj = json_object_object_get(ipinfo_obj, "Ip");
-                                struct json_object *subnet_obj = json_object_object_get(ipinfo_obj, "Subnet");
-                                if(ip_obj && subnet_obj && tunmask_obj){
-                                    char ipaddr[strlen(json_object_get_string(ip_obj) + 1)];
-                                    sprintf(ipaddr, "%s", json_object_get_string(ip_obj)); 
-                                    char subnet[strlen(json_object_get_string(subnet_obj) + 1)];
-                                    sprintf(subnet, "%s", json_object_get_string(subnet_obj));
-                                    uint32_t tuncidr_len = json_object_get_int(tunmask_obj);
-                                    sprintf(tunip_mask_string, "%d", tuncidr_len);
-                                    struct in_addr tuncidr;
-                                    uint32_t ip = 0;
-                                    uint32_t mask = 0;
-                                    if (inet_aton(ipaddr, &tuncidr)){
-                                        ip = tuncidr.s_addr;
-                                    }
-                                    struct in_addr tunmask;
-                                    if (inet_aton(subnet, &tunmask)){
-                                        mask = tunmask.s_addr;
-                                    }
-                                    uint32_t dnsnet = ip & mask;
-                                    printf("dns network = %x\n", ntohl(dnsnet));
-                                    char *tunip = nitoa(ntohl(dnsnet));
-                                    printf("dotted dec = %s\n", tunip);
-                                    if(tunip){
-                                        sprintf(tunip_string, "%s" , tunip);
-                                        zfw_update(tunip_string, tunip_mask_string, "1", "65535", "tcp", "-I");
-                                        zfw_update(tunip_string, tunip_mask_string, "1", "65535", "udp", "-I");
-                                        free(tunip);
-                                    }
-                                    
-                                }
-                            }*/
-                            struct json_object *identities_obj = json_object_object_get(status_obj, "Identities");
-                            if(identities_obj){
-                                int identities_len = json_object_array_length(identities_obj);
-                                if(identities_len){
-                                    for(int i = 0; i < identities_len; i++){
-                                        struct json_object *ident_obj = json_object_array_get_idx(identities_obj, i);
-                                        if(ident_obj){
-                                            scrape_identity_log(ident_obj);
-                                            struct json_object *services_obj = json_object_object_get(ident_obj, "Services");
-                                            if(services_obj){
-                                                enumerate_service(services_obj, "-I");
-                                            }
+                        }
+                        struct json_object *identities_obj = json_object_object_get(status_obj, "Identities");
+                        if(identities_obj){
+                            int identities_len = json_object_array_length(identities_obj);
+                            if(identities_len){
+                                for(int i = 0; i < identities_len; i++){
+                                    struct json_object *ident_obj = json_object_array_get_idx(identities_obj, i);
+                                    if(ident_obj){
+                                        scrape_identity_log(ident_obj);
+                                        struct json_object *services_obj = json_object_object_get(ident_obj, "Services");
+                                        if(services_obj){
+                                            enumerate_service(services_obj, "-I");
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                    else if(!strcmp("bulkservice", operation)){
-                        struct json_object *services_obj = json_object_object_get(event_jobj, "RemovedServices");
-                        if(services_obj){
-                            enumerate_service(services_obj, "-D");
-                        }
-                        services_obj = json_object_object_get(event_jobj, "AddedServices");
-                        if(services_obj){
-                            enumerate_service(services_obj, "-I");
-                        }
+                }
+                else if(!strcmp("bulkservice", operation)){
+                    struct json_object *services_obj = json_object_object_get(event_jobj, "RemovedServices");
+                    if(services_obj){
+                        enumerate_service(services_obj, "-D");
                     }
-                    else if(!strcmp("identity", operation)){
-                        struct json_object *action_obj = json_object_object_get(event_jobj, "Action");
-                        if(action_obj){
-                            char action_string[strlen(json_object_get_string(action_obj)) + 1];
-                            sprintf(action_string, "%s", json_object_get_string(action_obj));
-                            if(!strcmp("updated", action_string)){
-                                struct json_object *ident_obj = json_object_object_get(event_jobj, "Id");
-                                ret = send_command(cmdbytes, sizeof(cmdbytes));
-                                if (ret == -1)
-                                {
-                                    return -1;
-                                }
-                                if(ident_obj){
-                                    scrape_identity_log(ident_obj);
-                                }
+                    services_obj = json_object_object_get(event_jobj, "AddedServices");
+                    if(services_obj){
+                        enumerate_service(services_obj, "-I");
+                    }
+                }
+                else if(!strcmp("identity", operation)){
+                    struct json_object *action_obj = json_object_object_get(event_jobj, "Action");
+                    if(action_obj){
+                        char action_string[strlen(json_object_get_string(action_obj)) + 1];
+                        sprintf(action_string, "%s", json_object_get_string(action_obj));
+                        if(!strcmp("updated", action_string)){
+                            struct json_object *ident_obj = json_object_object_get(event_jobj, "Id");
+                            ret = send_command(cmdbytes, sizeof(cmdbytes));
+                            if (ret == -1)
+                            {
+                                return -1;
+                            }
+                            if(ident_obj){
+                                scrape_identity_log(ident_obj);
                             }
                         }
-                     }
+                    }
+                    }
 
-                }
             }
         }
+        
     }
     return 0;    
 }
