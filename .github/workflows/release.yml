@@ -85,12 +85,11 @@ jobs:
         goos: [linux]
         goarch: [arm64]
         platform: [linux/arm64]
+    container:
+       image: arm64v8/ubuntu
+       options: --user root --privileged
     steps:
       - uses: actions/checkout@v3
-      - name: Build Docker image
-        run: docker build -t my-image:${{ matrix.platform }} .
-      - name: Push Docker image
-        run: docker push my-image:${{ matrix.platform }}
       - uses: uraimo/run-on-arch-action@v2
         name: Run commands
         id: runcmd
