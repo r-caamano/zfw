@@ -84,7 +84,7 @@ jobs:
       matrix:
         goos: [linux]
         goarch: [arm64]
-        platform: [linux/arm/v7]
+        platform: [linux/arm64/v7]
     steps:
       - uses: actions/checkout@v3
       - uses: uraimo/run-on-arch-action@v2
