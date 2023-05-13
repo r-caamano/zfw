@@ -57,7 +57,7 @@ jobs:
           chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py
           chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
           chmod +x .debpkg/opt/openziti/bin/user/user_rules.sh
-          ln -s ../opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
+          ln -s /opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
       - uses: jiro4989/build-deb-action@v2
         with:
               package: ${{ env.APP_NAME }}
