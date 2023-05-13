@@ -93,6 +93,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get upgrade -yqq
           sudo apt-get install -y jq gcc clang libbpfcc-dev libbpf-dev libjson-c-dev
+          sudo apt-get install -y linux-headers-$(uname -r)
       - name:  Compile Object file from Source
         run: | 
           clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
