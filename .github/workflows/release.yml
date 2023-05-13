@@ -171,10 +171,9 @@ jobs:
         goos: [linux]
         goarch: [amd64]
     steps:
-     - name: Get amd86 artifact
-       uses: actions/download-artifact@v3
-          with:
-            name: artifact-amd64-deb
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-amd64-deb
       - name: Upload built deb artifacts
         uses: actions/upload-release-asset@v1
         env:
@@ -195,10 +194,9 @@ jobs:
         goos: [linux]
         goarch: [arm64]
     steps:
-     - name: Get amd86 artifact
-       uses: actions/download-artifact@v3
-          with:
-            name: artifact-arm64-deb
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-arm64-deb
       - name: Upload built deb artifacts
         uses: actions/upload-release-asset@v1
         env:
