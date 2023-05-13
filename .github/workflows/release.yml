@@ -77,7 +77,7 @@ jobs:
             ./*.deb
   
   build_arm64_release:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     outputs:
       version: ${{ steps.version.outputs.version }}
     strategy:
@@ -85,26 +85,22 @@ jobs:
         goos: [linux]
         goarch: [arm64]
         platform: [linux/arm64]
-    container:
-       image: arm64v8/ubuntu
-       options: --user root --privileged
     steps:
-      - uses: actions/checkout@v3
-      - uses: uraimo/run-on-arch-action@v2
-        name: Run commands
-        id: runcmd
-        with:
-          arch: aarch64
-          distro: ubuntu22.04
-          run: |
-            sudo apt-get update -qq
-            sudo apt-get upgrade -yqq
-            sudo apt-get install -y jq gcc clang libbpfcc-dev libbpf-dev libjson-c-dev
-            clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
-            clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
-            clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/-Wextra -target bpf -c -o files/bin/zfw_tc_outbound_track.o src/zfw_tc_outbound_track.c
-            clang -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -o files/bin/zfw src/zfw.c
-            gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
+      - name: Check out code
+        uses: actions/checkout@v3
+          
+      - name: Install EBPF Packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get upgrade -yqq
+          sudo apt-get install -y jq gcc clang libbpfcc-dev libbpf-dev libjson-c-dev
+      - name:  Compile Object file from Source
+        run: | 
+          clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_tc_ingress.o src/zfw_tc_ingress.c
+          clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o files/bin/zfw_xdp_tun_ingress.o src/zfw_xdp_tun_ingress.c
+          clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/-Wextra -target bpf -c -o files/bin/zfw_tc_outbound_track.o src/zfw_tc_outbound_track.c
+          clang -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -o files/bin/zfw src/zfw.c
+          gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
       - name: Get version
         run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
         id: version
