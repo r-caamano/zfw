@@ -176,9 +176,9 @@ jobs:
        uses: actions/download-artifact@v3
           with:
             if: matrix.goarch == 'amd64'
-            name: artifact-amd64-deb
+              name: artifact-amd64-deb
             if: matrix.goarch == 'arm64'
-            name: artifact-arm64-deb
+              name: artifact-arm64-deb
       - name: Upload built deb artifacts
         uses: actions/upload-release-asset@v1
         env:
