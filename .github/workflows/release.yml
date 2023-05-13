@@ -95,6 +95,9 @@ jobs:
           prerelease: false
           release_name: v${{ needs.build_release.outputs.output1 }}
           tag_name: v${{ needs.build_release.outputs.output1 }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          
       - name: Upload built deb artifact for amd64
         uses: actions/upload-release-asset@v1
         env:
