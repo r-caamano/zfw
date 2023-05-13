@@ -76,17 +76,16 @@ jobs:
           path: |
             ./*.deb
           
-  deploy_packages:
+  deploy_release:
     runs-on: ubuntu-22.04
+    outputs:
+      upload_url: ${{ steps.release.outputs.upload_url }}
     needs:
       - build_release
     strategy:
       matrix:
         goos: [linux]
     steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: artifact-deb
       - name: Create release
         uses: actions/create-release@v1
         id: release
@@ -98,21 +97,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           
-      - name: Upload built deb artifact for amd64
+  deploy_packages:
+    runs-on: ubuntu-22.04
+    needs:
+      - deploy_release
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-deb
+      - name: Upload built deb artifacts
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          upload_url: ${{ steps.release.outputs.upload_url }}
-          asset_path: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_amd64.deb
-          asset_name: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_amd64.deb
-          asset_content_type: application/vnd.debian.binary-package
-      - name: Upload built deb artifact for arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.release.outputs.upload_url }}
-          asset_path: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_arm64.deb
-          asset_name: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_arm64.deb
+          upload_url: ${{ needs.build_release.outputs.upload_url }}
+          asset_path: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_${{ goarch }}.deb
+          asset_name: ${{ env.APP_NAME }}_${{ needs.build_release.outputs.output1 }}_${{ goarch }}.deb
           asset_content_type: application/vnd.debian.binary-package
