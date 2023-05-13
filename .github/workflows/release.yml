@@ -41,7 +41,7 @@ jobs:
         run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
         id: version
         
-      - name: Deb Object File
+      - name: Create deb package File
         run: |
           mkdir -p .debpkg/opt/openziti/bin/user
           mkdir -p .debpkg/opt/openziti/etc
@@ -104,9 +104,9 @@ jobs:
           gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
       - name: Get version
         run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
-        id: version
+        id: versio
         
-      - name: Deb Object File
+      - name: Create deb package File
         run: |
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN
           touch ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
@@ -158,8 +158,8 @@ jobs:
         with:
           draft: false
           prerelease: false
-          release_name: v${{ needs.build_release.outputs.version }}
-          tag_name: v${{ needs.build_release.outputs.version }}
+          release_name: v${{ needs.build_amd64_release.outputs.version }}
+          tag_name: v${{ needs.build_amd64_release.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           
