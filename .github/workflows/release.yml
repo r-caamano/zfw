@@ -43,33 +43,34 @@ jobs:
         
       - name: Deb Object File
         run: |
-          mkdir -p .debpkg/opt/openziti/bin/user
-          mkdir -p .debpkg/opt/openziti/etc
-          mkdir -p .debpkg/etc/systemd/system
-          mkdir -p .debpkg/usr/sbin
-          cp -p files/bin/zfw_xdp_tun_ingress.o .debpkg/opt/openziti/bin/
-          cp -p files/bin/zfw_tc_ingress.o .debpkg/opt/openziti/bin/
-          cp -p files/bin/zfw_tunnwrapper .debpkg/opt/openziti/bin/
-          cp -p files/bin/zfw_tc_outbound_track.o .debpkg/opt/openziti/bin/
-          cp -p files/bin/zfw .debpkg/opt/openziti/bin/zfw
-          cp -p files/scripts/start_ebpf.py .debpkg/opt/openziti/bin/
-          cp -p files/scripts/set_xdp_redirect.py .debpkg/opt/openziti/bin/
-          cp -p files/scripts/user_rules.sh.sample .debpkg/opt/openziti/bin/user/
-          cp -p files/json/ebpf_config.json.sample .debpkg/opt/openziti/etc/
-          cp -p files/services/ziti-fw-init.service .debpkg/etc/systemd/system/
-          cp -p files/services/ziti-wrapper.service .debpkg/etc/systemd/system/
-          chmod +x .debpkg/opt/openziti/bin/set_xdp_redirect.py
-          chmod +x .debpkg/opt/openziti/bin/start_ebpf.py
-          chmod +x .debpkg/opt/openziti/bin/user/user_rules.sh.sample
-          ln -s /opt/openziti/bin/zfw .debpkg/usr/sbin/zfw
-      - uses: jiro4989/build-deb-action@v2
-        with:
-              package: ${{ env.APP_NAME }}
-              package_root: .debpkg
-              maintainer: ${{ env.MAINTAINER }}
-              version: ${{ steps.version.outputs.version }}
-              arch: ${{ matrix.goarch }}
-              desc: '${{ env.DESC }}'        
+          mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN
+          touch ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Package: ${{ env.APP_NAME }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Depends: ziti-edge-tunnel >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Version: ${{ steps.version.outputs.version }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Architecture: ${{ matrix.goarch }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Maintainer: {{ env.MAINTAINER }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Description: ${{ env.DESC }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/user
+          mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/etc
+          mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/etc/systemd/system
+          mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/usr/sbin
+          cp -p files/bin/zfw_xdp_tun_ingress.o ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/
+          cp -p files/bin/zfw_tc_ingress.o ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/
+          cp -p files/bin/zfw_tunnwrapper ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/
+          cp -p files/bin/zfw_tc_outbound_track.o ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/
+          cp -p files/bin/zfw ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/
+          cp -p files/scripts/start_ebpf.py ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/
+          cp -p files/scripts/set_xdp_redirect.py ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/
+          cp -p files/scripts/user_rules.sh.sample ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/user/
+          cp -p files/json/ebpf_config.json.sample ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/etc/
+          cp -p files/services/ziti-fw-init.service ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/etc/systemd/system/
+          cp -p files/services/ziti-wrapper.service ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/etc/systemd/system/
+          chmod +x ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/set_xdp_redirect.py
+          chmod +x ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/start_ebpf.py
+          chmod +x ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/user/user_rules.sh.sample
+          ln -s /opt/openziti/bin/zfw ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/usr/sbin/zfw
+          dpkg-deb --build --root-owner-group ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}        
       - uses: actions/upload-artifact@v3
         with:
           name: artifact-amd64-deb
@@ -102,8 +103,9 @@ jobs:
           clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/-Wextra -target bpf -c -o files/bin/zfw_tc_outbound_track.o src/zfw_tc_outbound_track.c
           clang -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -o files/bin/zfw src/zfw.c
           gcc -o files/bin/zfw_tunnwrapper src/zfw_tunnel_wrapper.c -l json-c
+          
       - name: Get version
-        run: echo "version=`files/bin/zfw -V`" >> $GITHUB_OUTPUT
+        run: echo "version=" >> $GITHUB_OUTPUT
         id: version
         
       - name: Deb Object File
