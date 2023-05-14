@@ -81,8 +81,6 @@ jobs:
     runs-on: [self-hosted, linux, ARM64]
     outputs:
       version: ${{ steps.version.outputs.version }}
-    needs:
-    - build_amd64_release
     strategy:
       matrix: 
         goos: [linux]
