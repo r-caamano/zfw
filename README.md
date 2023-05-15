@@ -23,18 +23,19 @@ dpkg -i zfw_<ver>_<arch>.deb
 ```
 
 files will be installed in the following directories
-   /etc/systemd/system <systemd service files>  
-   /usr/sbin <symbolic link to zfw executable>
-   /opt/openziti/etc : <config files> 
-   /opt/openziti/bin : <binary executables, executable scripts, binary object files>
-   /opt/openziti/bin/user: <user configured rules>
-
+```
+/etc/systemd/system <systemd service files>  
+/usr/sbin <symbolic link to zfw executable>
+/opt/openziti/etc : <config files> 
+/opt/openziti/bin : <binary executables, executable scripts, binary object files>
+/opt/openziti/bin/user: <user configured rules>
+```
 configure:
 edit interfaces
-    ```
+```
     sudo cp /opt/openziti/etc/ebpf_config.yml.sample /opt/openziti/etc/ebpf_config.yml
     sudo vi /opt/openziti/etc/ebpf_config.yml
-    ```
+```
 replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
 Replace with interface you want to enable for ingress firewalling/ openziti interception
 i.e. ens33
