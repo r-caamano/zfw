@@ -31,20 +31,23 @@ files will be installed in the following directories
 
 configure:
    edit interfaces:
+    ```
     sudo cp /opt/openziti/etc/ebpf_config.yml.sample /opt/openziti/etc/ebpf_config.yml
     sudo vi /opt/openziti/etc/ebpf_config.yml
-
-    replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
-    Replace with interface you want to enable for ingress firewalling/ openziti interception
-    i.e. ens33
+    ```
+replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
+Replace with interface you want to enable for ingress firewalling/ openziti interception
+i.e. ens33
     {"InternalInterfaces":[{"Name":"ens33"}]}
-    Note if you want to add more than one add to list
+Note if you want to add more than one add to list
     {"InternalInterfaces":[{"Name":"ens33"} {"Name":"ens37"}]}
 
-   add user configured rules:
+add user configured rules:
+```
    sudo cp /opt/openziti/bin/user/user_rules.sh.sample /opt/openziti/bin/user/user_rules.sh
    sudo vi /opt/openziti/bin/user_rules.sh
-   
+```   
+
 Enable services:
    Assuming ziti-edge-tunnel is running: 
 ```  
@@ -108,59 +111,59 @@ sudo reboot
 The firewall can support subtending devices for two interface scenarios i.e.
 external and trusted.
 
-    external inet <----> (ens33)[ebpf-router](ens37) <----> trusted clients
+external inet <----> (ens33)[ebpf-router](ens37) <----> trusted clients
 
-    with tproxy-splicer.o applied ingress on ens33 and oubound_track.o applied egress on ens33 the router will
-    statefully track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
-    running in this mode it does not make sense to add ziti tproxy rules and is meant for running as a traditional fw.
-    As be for you can also create passthrough FW rules (set -t --tproxy-port to 0) which would also make sense in the mode for
-    specific internet initiated traffic you might want to allow in.
+with tproxy-splicer.o applied ingress on ens33 and oubound_track.o applied egress on ens33 the router will
+statefully track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
+running in this mode it does not make sense to add ziti tproxy rules and is meant for running as a traditional fw.
+As be for you can also create passthrough FW rules (set -t --tproxy-port to 0) which would also make sense in the mode for
+specific internet initiated traffic you might want to allow in.
 
-    TCP:
-        If the tcp connections close gracefully then the entries will remove upon connection closure. 
-        if not then there is a 60 minute timeout that will remove the in active state if no traffic seen
-        in either direction.
+TCP:
+    If the tcp connections close gracefully then the entries will remove upon connection closure. 
+    if not then there is a 60 minute timeout that will remove the in active state if no traffic seen
+    in either direction.
 
-    UDP:
-        State will remain active as long as packets tuples matching SRCIP/SPORT/DSTIP/DPORT are seen in
-        either direction within 30 seconds.  If no packets seen in either dorection the state will expire.
-        If an external packet enters the interface after expire the entry will be deleted.  if an egress
-        packet fined a matching expired state it will return the state to active.
+UDP:
+    State will remain active as long as packets tuples matching SRCIP/SPORT/DSTIP/DPORT are seen in
+    either direction within 30 seconds.  If no packets seen in either dorection the state will expire.
+    If an external packet enters the interface after expire the entry will be deleted.  if an egress
+    packet fined a matching expired state it will return the state to active.
 
-    In order to support this per interface rule awareness was added which allows each port range within a prefix
-    to match a list of connected interfaces.  On a per interface basis you can decide to honor that list or not via
-    a per-prefix-rules setting in the following manner via the zfw utility
-    
-    singly:
-    ```
-    sudo zfw -P <ifname>  <this would be set on the wan facing interface so that it would not have access to openziti services unless manully added >
-                          <To survive restart this would need to be added to the /opt/opnziti/user/user_rule.sh>
-    ```
-    or 
+In order to support this per interface rule awareness was added which allows each port range within a prefix
+to match a list of connected interfaces.  On a per interface basis you can decide to honor that list or not via
+a per-prefix-rules setting in the following manner via the zfw utility
 
-    all interfaces:
-    ```
-    sudo zfw -P all
-    ```
+singly:
+```
+sudo zfw -P <ifname>  <this would be set on the wan facing interface so that it would not have access to openziti services unless manully added >
+                        <To survive restart this would need to be added to the /opt/opnziti/user/user_rule.sh>
+```
+or 
 
-    In order to assign 1 to 3 interfaces to a rule you would use the new -N option in combination with the -I i.e.
-    to associate the rule to end37 and lo:
+all interfaces:
+```
+sudo zfw -P all
+```
 
-    ```
-    sudo zfw -I -c 172.16.31.0 -m 24 -l 443 -h 443 -t 44000 -p tcp -N ens37 -N lo
-    ```
+In order to assign 1 to 3 interfaces to a rule you would use the new -N option in combination with the -I i.e.
+to associate the rule to end37 and lo:
 
-    You will also need to enable outbound tracking on the external interface.  You can do so with the following:
-    Assuming ens33 is your wan facing interface you 
+```
+sudo zfw -I -c 172.16.31.0 -m 24 -l 443 -h 443 -t 44000 -p tcp -N ens37 -N lo
+```
 
-    sudo vi /opt/openziti/etc/ebpf_config.yml
+You will also need to enable outbound tracking on the external interface.  You can do so with the following:
+Assuming ens33 is your wan facing interface you 
 
-    add a new key ExternalInterfaces like this
-    {"InternalInterfaces":[{"Name":"ens37"},{"Name":"ens33"}], "ExternalInterfaces":[{"Name":"ens33"}]}
-    
-    The above JSON sets up ens33 to be an internal interface (No outbound tracking) and ens33 as an external interface
-    with outbound tracking.  It also automatically adds runs the sudo zfw -P ens33 so ens33 requires -N to add inbound
-    rules to it and will ignore rules where it is not in the interface list
+sudo vi /opt/openziti/etc/ebpf_config.yml
+
+add a new key ExternalInterfaces like this
+{"InternalInterfaces":[{"Name":"ens37"},{"Name":"ens33"}], "ExternalInterfaces":[{"Name":"ens33"}]}
+
+The above JSON sets up ens33 to be an internal interface (No outbound tracking) and ens33 as an external interface
+with outbound tracking.  It also automatically adds runs the sudo zfw -P ens33 so ens33 requires -N to add inbound
+rules to it and will ignore rules where it is not in the interface list
     
 
 
