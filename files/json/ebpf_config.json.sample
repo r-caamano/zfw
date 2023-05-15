@@ -1,3 +1,1 @@
-{"Config":
-{"Interfaces":[{"Name":"eth0"}]
-}}
+{"InternalInterfaces":[{"Name":"ens33"}]}

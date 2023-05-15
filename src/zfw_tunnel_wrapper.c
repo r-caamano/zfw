@@ -1,3 +1,17 @@
+/*    Copyright (C) 2022  Robert Caamano   */
+/*
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *   see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -45,11 +59,6 @@ void open_tun_map();
 void unbind_prefix(struct in_addr *address, unsigned short mask);
 void zfw_update(char *ip, char *mask, char *lowport, char *highport, char *protocol, char *action);
 void INThandler(int sig);
-
-struct event_list{
-    char event1[2048];
-    char event2[2048];
-};
 
 /*convert integer ip to dotted decimal string*/
 char *nitoa(uint32_t address)
@@ -450,6 +459,7 @@ int readfile(char *filename){
                         }
                     }
                 }
+                json_object_put(jobj);
             }
         }
     }
@@ -666,6 +676,7 @@ int send_command(byte cmdbytes[], int cmd_length){
             return -1;
         }
     }
+    json_object_put(ctrl_jobj);
     return 0;
 }
 
@@ -740,11 +751,11 @@ int run(){
         int count = 0;
         while((read(event_socket, ch, 1 ) != 0) && count < EVENT_BUFFER_SIZE){
             if(ch[0] != '\n'){
-                printf("%c", ch[0]);
+                //printf("%c", ch[0]);
                 event_buffer[count] = ch[0];
             }else{
-                printf("%c\n", ch[0]);
-                event_buffer[count] = '\0';
+                //printf("%c\n", ch[0]);
+                event_buffer[count + 1] = '\0';
                 break;
             }
             count++;
@@ -760,10 +771,11 @@ int run(){
             if(op_obj){
                 char operation[strlen(json_object_get_string(op_obj)) + 1];
                 sprintf(operation, "%s", json_object_get_string(op_obj));
-                printf("operation = %s\n",operation);
-                printf("%s\n\n",json_object_to_json_string_ext(event_jobj,JSON_C_TO_STRING_PLAIN));
+                if(strcmp(operation, "metrics")){
+                    printf("%s\n\n",json_object_to_json_string_ext(event_jobj,JSON_C_TO_STRING_PLAIN));
+                }
                 if(!strcmp("status", operation)){
-                    printf("Received Status Event\n");
+                    //printf("Received Status Event\n");
                     // send command to dump tunnel services to file
                     ret = send_command(cmdbytes, sizeof(cmdbytes));
                     if (ret == -1)
@@ -839,8 +851,9 @@ int run(){
                     }
 
             }
+            json_object_put(event_jobj);
         }
-        
+        sleep(1);
     }
     return 0;    
 }
