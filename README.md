@@ -265,7 +265,7 @@ sudo ./zfw -L
     TUNMODE    udp	    0.0.0.0/0           100.64.0.0/10             dpts=1:65535     	        TUNMODE redirect:tun0            []
 
 Example: List rules in map for a given prefix and protocol
-# Usage: ./zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
+Usage: ./zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
 ```  
 sudo zfw -L -c 192.168.100.100 -m 32 -p udp
 ```
@@ -276,7 +276,7 @@ PASSTHRU   udp      0.0.0.0/0        192.168.100.100/32       dpts=50000:60000 	
 
 
 Example: List rules in map for a given prefix
-# Usage: ./zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
+Usage: ./zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
 ```
 sudo zfw -L -c 192.168.100.100 -m 32
 ```
