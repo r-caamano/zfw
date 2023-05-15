@@ -293,46 +293,45 @@ Usage: ./zfw -L -E
 sudo ./zfw -L -E
 ```
 
-lo: 1
---------------------------
-icmp echo               :1
-verbose                 :0
-ssh disable             :0
-per interface           :0
-tc ingress filter       :1
-tc egress filter        :0
-tun mode intercept      :0
---------------------------
+    lo: 1
+    --------------------------
+    icmp echo               :1
+    verbose                 :0
+    ssh disable             :0
+    per interface           :0
+    tc ingress filter       :1
+    tc egress filter        :0
+    tun mode intercept      :0
+    --------------------------
 
-ens33: 3
---------------------------
-icmp echo               :0
-verbose                 :1
-ssh disable             :1
-per interface           :1
-tc ingress filter       :1
-tc egress filter        :1
-tun mode intercept      :0
---------------------------
+    ens33: 3
+    --------------------------
+    icmp echo               :0
+    verbose                 :1
+    ssh disable             :1
+    per interface           :1
+    tc ingress filter       :1
+    tc egress filter        :1
+    tun mode intercept      :0
+    --------------------------
 
-ens37: 4
---------------------------
-icmp echo               :0
-verbose                 :0
-ssh disable             :0
-per interface           :0
-tc ingress filter       :1
-tc egress filter        :0
-tun mode intercept      :0
---------------------------
+    ens37: 4
+    --------------------------
+    icmp echo               :0
+    verbose                 :0
+    ssh disable             :0
+    per interface           :0
+    tc ingress filter       :1
+    tc egress filter        :0
+    tun mode intercept      :0
+    --------------------------
 
-tun0: 9
---------------------------
-verbose                 :0
-cidr                    :100.64.0.0
-mask                    :10
---------------------------
-```
+    tun0: 9
+    --------------------------
+    verbose                 :0
+    cidr                    :100.64.0.0
+    mask                    :10
+    --------------------------
 
 Example: Remove all tc-ebpf on router
 
