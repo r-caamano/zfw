@@ -353,4 +353,4 @@ sudo zfw --disable-ebpf
 
 
 ### Openziti router setup:
--comming soon
+-coming soon
