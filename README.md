@@ -340,17 +340,17 @@ Usage: ./zfw -Q,--disable-ebpf
 ```
 sudo zfw --disable-ebpf
 ```
-tc parent del : lo
-tc parent del : ens33
-tc parent del : ens37
-removing /sys/fs/bpf/tc/globals/zt_tproxy_map
-removing /sys/fs/bpf/tc/globals/diag_map
-removing /sys/fs/bpf/tc/globals/ifindex_ip_map
-removing /sys/fs/bpf/tc/globals/tuple_count_map
-removing /sys/fs/bpf/tc/globals/prog_map
-removing /sys/fs/bpf/tc/globals/udp_map
-removing /sys/fs/bpf/tc//globals/matched_map
-removing /sys/fs/bpf/tc/globals/tcp_map
+    tc parent del : lo
+    tc parent del : ens33
+    tc parent del : ens37
+    removing /sys/fs/bpf/tc/globals/zt_tproxy_map
+    removing /sys/fs/bpf/tc/globals/diag_map
+    removing /sys/fs/bpf/tc/globals/ifindex_ip_map
+    removing /sys/fs/bpf/tc/globals/tuple_count_map
+    removing /sys/fs/bpf/tc/globals/prog_map
+    removing /sys/fs/bpf/tc/globals/udp_map
+    removing /sys/fs/bpf/tc//globals/matched_map
+    removing /sys/fs/bpf/tc/globals/tcp_map
 ```
 
 
