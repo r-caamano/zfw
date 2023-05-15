@@ -1,10 +1,5 @@
 /*    Copyright (C) 2022  Robert Caamano   */
 /*
- *
- *   This program inserts a rule into an existing pinned
- *   zt_tproxy_map hash table created by the tproxy_splicer
- *   program when attatched to an interface via tc
- *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
@@ -117,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.0";
+const char *argp_program_version = "0.1.1";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
