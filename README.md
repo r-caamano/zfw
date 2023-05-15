@@ -36,12 +36,14 @@ edit interfaces
     sudo cp /opt/openziti/etc/ebpf_config.yml.sample /opt/openziti/etc/ebpf_config.yml
     sudo vi /opt/openziti/etc/ebpf_config.yml
 ```
-replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
+```
+Replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
 Replace with interface you want to enable for ingress firewalling/ openziti interception
 i.e. ens33
     {"InternalInterfaces":[{"Name":"ens33"}]}
 Note if you want to add more than one add to list
     {"InternalInterfaces":[{"Name":"ens33"} {"Name":"ens37"}]}
+```
 
 add user configured rules:
 ```
