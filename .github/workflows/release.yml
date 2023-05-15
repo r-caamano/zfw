@@ -149,6 +149,7 @@ jobs:
       upload_url: ${{ steps.release.outputs.upload_url }}
     needs:
       - build_amd64_release
+      - build_arm64_release
     strategy:
       matrix:
         goos: [linux]
@@ -164,19 +165,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           
-  deploy_packages_amd64:
+  deploy_packages:
     runs-on: ubuntu-22.04
     needs:
       - build_amd64_release
+      - build_arm64_release
       - deploy_release
     strategy:
       matrix:
         goos: [linux]
-        goarch: [amd64]
+        goarch: [amd64, arm64]
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: artifact-amd64-deb
+          name: artifact-${{ matrix.goarch }}-deb
       - name: Upload built deb artifacts
         uses: actions/upload-release-asset@v1
         env:
@@ -186,26 +188,3 @@ jobs:
           asset_path: ${{ env.APP_NAME }}_${{ needs.build_amd64_release.outputs.version }}_${{ matrix.goarch }}.deb
           asset_name: ${{ env.APP_NAME }}_${{ needs.build_amd64_release.outputs.version }}_${{ matrix.goarch }}.deb
           asset_content_type: application/vnd.debian.binary-package 
-          
-  deploy_packages_arm64:
-    runs-on: ubuntu-22.04
-    needs:
-      - build_arm64_release
-      - deploy_release
-    strategy:
-      matrix:
-        goos: [linux]
-        goarch: [arm64]
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: artifact-arm64-deb
-      - name: Upload built deb artifacts
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ needs.deploy_release.outputs.upload_url }}
-          asset_path: ${{ env.APP_NAME }}_${{ needs.build_arm64_release.outputs.version }}_${{ matrix.goarch }}.deb
-          asset_name: ${{ env.APP_NAME }}_${{ needs.build_arm64_release.outputs.version }}_${{ matrix.goarch }}.deb
-          asset_content_type: application/vnd.debian.binary-package
