@@ -17,7 +17,7 @@ edge-routers deb package / manual instructions not yet available but comming soo
 The program is designed to be deployed as systemd services if deployed via .deb package with
 an existing ziti-edge-tunnel(v21.0 +) service installation.  
 
--install
+- Install
 ```
 dpkg -i zfw_<ver>_<arch>.deb
 ```
@@ -30,15 +30,15 @@ files will be installed in the following directories
 /opt/openziti/bin : <binary executables, executable scripts, binary object files>
 /opt/openziti/bin/user: <user configured rules>
 ```
-configure:
-edit interfaces
+Configure:
+- Edit interfaces
 ```
     sudo cp /opt/openziti/etc/ebpf_config.yml.sample /opt/openziti/etc/ebpf_config.yml
     sudo vi /opt/openziti/etc/ebpf_config.yml
 ```
 
-Replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
-Replace with interface you want to enable for ingress firewalling/ openziti interception
+- Replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
+  Replace with interface that you want to enable for ingress firewalling/ openziti interception.
 ```
 i.e. ens33
     {"InternalInterfaces":[{"Name":"ens33"}]}
@@ -46,13 +46,13 @@ Note if you want to add more than one add to list
     {"InternalInterfaces":[{"Name":"ens33"} {"Name":"ens37"}]}
 ```
 
-add user configured rules:
+- Add user configured rules:
 ```
    sudo cp /opt/openziti/bin/user/user_rules.sh.sample /opt/openziti/bin/user/user_rules.sh
    sudo vi /opt/openziti/bin/user_rules.sh
 ```   
 
-Enable services:
+- Enable services:
    Assuming ziti-edge-tunnel is running: 
 ```  
     sudo systemctl enable ziti-fw-init.service
@@ -103,13 +103,6 @@ expected output:
 9: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 xdpgeneric qdisc fq_codel state UNKNOWN mode DEFAULT group default qlen 500
     link/none 
     prog/xdp id 249 tag 06c4719358c6de42 jited  <This line will be there if exp forwarder is running>
-
-
--remove services and files
-```
-dpkg -i zfw
-sudo reboot
-```
 
 
 The firewall can support subtending devices for two interface scenarios i.e.
