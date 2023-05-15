@@ -36,9 +36,10 @@ edit interfaces
     sudo cp /opt/openziti/etc/ebpf_config.yml.sample /opt/openziti/etc/ebpf_config.yml
     sudo vi /opt/openziti/etc/ebpf_config.yml
 ```
-```
+
 Replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
 Replace with interface you want to enable for ingress firewalling/ openziti interception
+```
 i.e. ens33
     {"InternalInterfaces":[{"Name":"ens33"}]}
 Note if you want to add more than one add to list
@@ -58,7 +59,7 @@ Enable services:
     sudo systemctl enable ziti-wrapper.service 
     sudo systemctl restart ziti-edge-tunnel 
 ```
-service will automatically configure ufw (if enabled) to hand off to ebpf on configured interface(s).  Exception is icmp
+The Service will automatically configure ufw (if enabled) to hand off to ebpf on configured interface(s).  Exception is icmp
 which must be maually enabled if its been disabled in ufw.  also to allow icmp to ip of configured interface you would need to
 set icmp to enabled in the user_rules.sh i.e. sudo zfw -e ens33 file and restart either the wrapper service or ziti-edge-tunnel 
 
