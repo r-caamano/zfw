@@ -30,7 +30,7 @@ files will be installed in the following directories
    /opt/openziti/bin/user: <user configured rules>
 
 configure:
-   edit interfaces:
+edit interfaces
     ```
     sudo cp /opt/openziti/etc/ebpf_config.yml.sample /opt/openziti/etc/ebpf_config.yml
     sudo vi /opt/openziti/etc/ebpf_config.yml
