@@ -98,7 +98,6 @@ expected output:
     prog/xdp id 249 tag 06c4719358c6de42 jited  <This line will be there if exp forwarder is running>
 
 
-```
 -remove services and files
 ```
 dpkg -i zfw
