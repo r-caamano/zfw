@@ -263,7 +263,7 @@ sudo ./zfw -L
     TPROXY     udp      0.0.0.0/0           192.168.0.3/32            dpts=5000:10000           TPROXY redirect 127.0.0.1:59394  []
     PASSTHRU   tcp      0.0.0.0/0           192.168.100.100/32        dpts=60000:65535          PASSTHRU to 192.168.100.100/32   []
     TUNMODE    udp	    0.0.0.0/0           100.64.0.0/10             dpts=1:65535     	        TUNMODE redirect:tun0            []
-```
+
 Example: List rules in map for a given prefix and protocol
 # Usage: ./zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
 ```  
@@ -351,8 +351,6 @@ sudo zfw --disable-ebpf
     removing /sys/fs/bpf/tc/globals/udp_map
     removing /sys/fs/bpf/tc//globals/matched_map
     removing /sys/fs/bpf/tc/globals/tcp_map
-```
-
 
 
 ### Openziti router setup:
