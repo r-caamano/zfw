@@ -172,22 +172,19 @@ sudo zfw --set-tc-filter <interface name>  --direction <ingress | egress> --disa
 
 ## Ebpf Map User Space Management
 ---
-Example: Insert map entry to direct SIP traffic destined for 172.16.240.0/24
+- User space maual cofiguration
+  ziti-edge tunnel will automatically populate rules for configured ziti services so the following is if
+  you want to configure additional rules outside of the automated ones.
 
+  All commands listed in this section would need to be put in /opt/openziti/bin/user/user_rules.sh
+  to survive reboot.
 
-Usage: ./zfw -I <ip dest address or prefix> -m <prefix length> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>
-
-```
-sudo ./zfw -I -c 172.16.240.0 -m 24 -l 5060 -h 5060 -t 58997 -p udp
-```
-
-As mentioned earlier if you add -r, --route as argument the program will add 172.16.240.0/24 to the "lo" interface if it
-does not overlap with an external LAN interface subnet.
-
-Example: Disable ssh from interface.
-
-This will disable default ssh action to pass to ip of local interface and then fall through to rule check instead where a more specific rule could
-be applied.  This is a per interface setting and can be set for all interfaces except loopback.
+- ssh default operation
+    By default ssh is enabled to the ip address of the attached interface from any source.
+    The following command will disable default ssh action to pass to ip of local interface and then
+    fall through to rule check instead where a more specific rule could be applied.  This is a per
+    interface setting and can be set for all interfaces except loopback.  This would need to be put in
+    /opt/openziti/bin/user/user_rules.sh to survive reboot.
 
 Usage: ./zfw -x <interface-name> | all
 
@@ -195,20 +192,18 @@ Usage: ./zfw -x <interface-name> | all
 sudo sudo ./zfw -x ens33
 ```
 
+The -t, --tproxy-port is has a dual purpose one it to signify the tproxy port used by openziti routers in tproxy mode and the other is to
+identify either local passthrough with value of 0 and the other is tunnel redirect mode with value of 65535.
 
-Example: Insert map entry to with source filteing to only allow rule for ip source 10.1.1.1/32.
+- Example 
+If you disable default ssh ahndling and assuming device interface ip is 172.16.240.1 and you want to insert map entry to with source 
+filtering to only allow rule for ip source ip 10.1.1.1/32 to reach 172.16.240.1. Notice -t 0 this means
+it drops to local OS stack not redirected to tproxy or tunnel.
 
 Usage: ./zfw -I -c <ip dest address or prefix> -m <dest prefix len> -o <origin address or prefix> -n <origin prefix len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>
 
 ```
-sudo sudo ./zfw -I -c 172.16.240.0 -m 24 -o 10.1.1.1 -n 32  -p tcp -l 22 -h 22 -t 0
-```
-
-Example: Insert FW rule for local router tcp listen port 443 where local router's tc interface ip address is 10.1.1.1
-with tproxy_port set to 0 signifying local connect rule
-
-```
-sudo ./zfw -I -c 10.1.1.1 -m 32 -l 443 -h 443 -t 0 -p tcp  
+sudo sudo ./zfw -I -c 172.16.240.1 -m 32 -o 10.1.1.1 -n 32  -p tcp -l 22 -h 22 -t 0
 ```
 
 Example: Monitor ebpf trace messages
@@ -236,10 +231,10 @@ Example: Remove previous entry from map
 Usage: ./zfw -D -c <ip dest address or prefix> -m <prefix len> -l <low_port> -p <protocol>
 
 ```
-sudo ./zfw -D -c 172.16.240.0 -m 24 -l 5060 -p udp
+sudo ./zfw -D -c 172.16.240.1 -m 32 -l 5060 -p udp
 ```
 
-Example: Remove all entries from map
+Example: Remove all rule entries from FW
 
 Usage: ./zfw -F
 
@@ -357,6 +352,7 @@ removing /sys/fs/bpf/tc/globals/udp_map
 removing /sys/fs/bpf/tc//globals/matched_map
 removing /sys/fs/bpf/tc/globals/tcp_map
 ```
+
 
 
 ### Openziti router setup:
