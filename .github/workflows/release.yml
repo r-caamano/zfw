@@ -183,4 +183,4 @@ jobs:
         with:
           file: ./${{ env.APP_NAME }}_${{ needs.build_amd64_release.outputs.version }}_${{ matrix.goarch }}.deb
           release_name: ${{ needs.build_amd64_release.outputs.version }}
-          tag: ${{ needs.build_amd64_release.outputs.version }}
+          tag: ${{ needs.build_amd64_release.outputs.version }}-{{ matrix.goarch }}
