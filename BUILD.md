@@ -21,7 +21,7 @@
         cd zfw/src
         clang -g -O2 -Wall -Wextra -target bpf -c -o zfw_tc_ingress.o zfw_tc_ingress.c
         clang -g -O2 -Wall -Wextra -target bpf -c -o zfw_xdp_tun_ingress.o zfw_xdp_tun_ingress.c
-        clang -g -O2 -Wall -Wextra -target bpf -c -o bin/zfw_tc_outbound_track.o zfw_tc_outbound_track.c
+        clang -g -O2 -Wall -Wextra -target bpf -c -o zfw_tc_outbound_track.o zfw_tc_outbound_track.c
         clang -O2 -Wall -Wextra -o zfw zfw.c
         gcc -o zfw_tunnwrapper zfw_tunnel_wrapper.c -l json-c
     ```  
@@ -47,7 +47,7 @@
         cd zfw/src
         clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o zfw_tc_ingress.o zfw_tc_ingress.c
         clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o zfw_xdp_tun_ingress.o zfw_xdp_tun_ingress.c
-        clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/-Wextra -target bpf -c -o zfw_tc_outbound_track.o zfw_tc_outbound_track.c
+        clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o zfw_tc_outbound_track.o zfw_tc_outbound_track.c
         clang -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -o zfw zfw.c
         gcc -o zfw_tunnwrapper zfw_tunnel_wrapper.c -l json-c
     ```     
