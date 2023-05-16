@@ -33,8 +33,8 @@ files will be installed in the following directories
 Configure:
 - Edit interfaces
 ```
-    sudo cp /opt/openziti/etc/ebpf_config.yml.sample /opt/openziti/etc/ebpf_config.yml
-    sudo vi /opt/openziti/etc/ebpf_config.yml
+    sudo cp /opt/openziti/etc/ebpf_config.json.sample /opt/openziti/etc/ebpf_config.json
+    sudo vi /opt/openziti/etc/ebpf_config.json
 ```
 
 - Replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
@@ -53,7 +53,6 @@ Note if you want to add more than one add to list
 ```   
 
 - Enable services:
-   Assuming ziti-edge-tunnel is running: 
 ```  
     sudo systemctl enable ziti-fw-init.service
     sudo systemctl enable ziti-wrapper.service 
@@ -61,7 +60,7 @@ Note if you want to add more than one add to list
 ```
 The Service will automatically configure ufw (if enabled) to hand off to ebpf on configured interface(s).  Exception is icmp
 which must be maually enabled if its been disabled in ufw.  also to allow icmp to ip of configured interface you would need to
-set icmp to enabled in the user_rules.sh i.e. sudo zfw -e ens33 file and restart either the wrapper service or ziti-edge-tunnel 
+set icmp to enabled in the /opt/openziti/bin/user/user_rules.sh file i.e. sudo zfw -e ens33 and then restart ziti-wrapper.service. 
 
 i.e. from above example ebpf_config zfw sets
 sudo ufw allow in on <ens33> to any
