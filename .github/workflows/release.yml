@@ -181,6 +181,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          file: ./${{ env.APP_NAME }}_${{ needs.build_amd64_release.outputs.version }}_${{ matrix.goarch }}.deb
-          release_name: ${{ needs.build_amd64_release.outputs.version }}
-          tag: ${{ needs.build_amd64_release.outputs.version }}.${{ matrix.goarch }}
+          file: ./${{ env.APP_NAME }}_${{ needs.build_${{ goarch }}_release.outputs.version }}_${{ matrix.goarch }}.deb
+          release_name: ${{ needs.build_${{ goarch }}_release.outputs.version }}
+          tag: v${{ needs.build_${{ goarch }}_release.outputs.version }}
