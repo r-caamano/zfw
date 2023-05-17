@@ -19,7 +19,7 @@ an existing ziti-edge-tunnel(v21.0 +) on Ubuntu 22.04(amd64/arm64)service instal
 
 - Install
 ```
-sudo dpkg -i zfw_<ver>_<arch>.deb
+dpkg -i zfw_<ver>_<arch>.deb
 ```
 
 files will be installed in the following directories
@@ -49,7 +49,7 @@ Note if you want to add more than one add to list
 - Add user configured rules:
 ```
    sudo cp /opt/openziti/bin/user/user_rules.sh.sample /opt/openziti/bin/user/user_rules.sh
-   sudo vi /opt/openziti/bin/user/user_rules.sh
+   sudo vi /opt/openziti/bin/user_rules.sh
 ```   
 
 - Enable services:

@@ -54,7 +54,6 @@
 #define MAX_IF_ENTRIES              30
 #define SERVICE_ID_BYTES            32
 #define MAX_TRANSP_ROUTES           256
-#define BPF_MAX_SESSIONS            10000
 #ifndef memcpy
  #define memcpy(dest, src, n) __builtin_memcpy((dest), (src), (n))
 #endif
@@ -300,7 +299,7 @@ struct {
      __uint(id, BPF_MAP_ID_TCP_MAP);
      __uint(key_size, sizeof(struct tuple_key));
      __uint(value_size,sizeof(struct tcp_state));
-     __uint(max_entries, BPF_MAX_SESSIONS);
+     __uint(max_entries, 200);
      __uint(pinning, LIBBPF_PIN_BY_NAME);
 } tcp_map SEC(".maps");
 
@@ -309,7 +308,7 @@ struct {
      __uint(id, BPF_MAP_ID_UDP_MAP);
      __uint(key_size, sizeof(struct tuple_key));
      __uint(value_size,sizeof(struct udp_state));
-     __uint(max_entries, BPF_MAX_SESSIONS);
+     __uint(max_entries, 200);
      __uint(pinning, LIBBPF_PIN_BY_NAME);
 } udp_map SEC(".maps");
 
@@ -319,7 +318,7 @@ struct {
      __uint(id, BPF_MAP_ID_TUN_MAP);
      __uint(key_size, sizeof(struct tun_key));
      __uint(value_size,sizeof(struct tun_state));
-     __uint(max_entries, BPF_MAX_SESSIONS);
+     __uint(max_entries, 200);
      __uint(pinning, LIBBPF_PIN_BY_NAME);
 } tun_map SEC(".maps");
 

@@ -50,7 +50,8 @@ egress_object_file = '/opt/openziti/bin/zfw_tc_outbound_track.o'
 if os.system("/opt/openziti/bin/zfw -L -E"):
     test1 = os.system("/opt/openziti/bin/zfw -Q")
     if test1:
-        print("failed to clear ebpf maps")
+        printf("failed to clear ebpf maps")
+        sys.exit(1)
     for i in internal_list:
         if(not tc_status(i, "ingress")):
             test1 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
