@@ -28,6 +28,7 @@
 #define BPF_MAP_ID_TUN_MAP      9
 #define BPF_MAP_ID_IFINDEX_TUN  10
 #define MAX_IF_ENTRIES          30
+#define BPF_MAX_SESSIONS        10000
 
 /*Key to tun_map, tcp_map and udp_map*/
 struct tuple_key {
@@ -76,7 +77,7 @@ struct {
      __uint(id, BPF_MAP_ID_TUN_MAP);
      __uint(key_size, sizeof(struct tun_key));
      __uint(value_size,sizeof(struct tun_state));
-     __uint(max_entries, 200);
+     __uint(max_entries, BPF_MAX_SESSIONS);
      __uint(pinning, LIBBPF_PIN_BY_NAME);
 } tun_map SEC(".maps");
 
