@@ -112,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.6";
+const char *argp_program_version = "0.1.5";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -683,8 +683,8 @@ void print_rule(struct tproxy_key *key, struct tproxy_tuple *tuple, int *rule_co
 void usage(char *message)
 {
     fprintf(stderr, "%s : %s\n", program_name, message);
-    fprintf(stderr, "Usage: zfw -I -c <dest cidr> -m <dest cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <proto id>\n");
-    fprintf(stderr, "       zfw -I -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <proto>\n");
+    fprintf(stderr, "Usage: zfw -I -c <ip dprefix> -m <dest cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <proto id>\n");
+    fprintf(stderr, "Usage: zfw -I -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <proto>\n");
     fprintf(stderr, "       zfw -D -c <dest cidr> -m <dest cidr len> -l <low_port> -p <protocol id>\n");
     fprintf(stderr, "       zfw -L -c <dest cidr> -m <dest cidr len> -p <protocol id>\n");
     fprintf(stderr, "       zfw -L -c <dest cidr> -m <dest cidr len> -p <protocol id>\n");
@@ -2172,10 +2172,6 @@ int main(int argc, char **argv)
         if (tcfilter || echo || ssh_disable || verbose || per_interface || add || delete || list || flush)
         {
             usage("Q, --disable-ebpf cannot be used in combination call");
-        }
-        if (access(diag_map_path, F_OK) != 0)
-        {
-            ebpf_usage();
         }
         disable_ebpf();
         exit(0);
