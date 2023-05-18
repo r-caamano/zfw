@@ -37,7 +37,7 @@ Configure:
     sudo vi /opt/openziti/etc/ebpf_config.json
 ```
 
-- Replace eth0 in line with:{"Interfaces":[{"Name":"eth0"}]} 
+- Replace ens33 in line with:{"InternalInterfaces":[{"Name":"ens33"}]} 
   Replace with interface that you want to enable for ingress firewalling/ openziti interception.
 ```
 i.e. ens33
@@ -104,6 +104,8 @@ expected output:
     prog/xdp id 249 tag 06c4719358c6de42 jited  <This line will be there if exp forwarder is running>
 
 
+### Outbound External passthrough traffic
+
 The firewall can support subtending devices for two interface scenarios i.e.
 external and trusted.
 
@@ -160,9 +162,32 @@ add a new key ExternalInterfaces like this
 The above JSON sets up ens33 to be an internal interface (No outbound tracking) and ens33 as an external interface
 with outbound tracking.  It also automatically adds runs the sudo zfw -P ens33 so ens33 requires -N to add inbound
 rules to it and will ignore rules where it is not in the interface list
+
+### Supporting Containers / VMs
+
+In the case of containers(i.e Docker) the traffic will appear to the firewall as though its external passthrough
+traffic and not host initiated. In this case we again can use the "ExternalInterfaces":[{"Name":"ens33"}] key to track
+outbound container session.  Example single interface config with lan if ens33 and a cocker container running on the same
+vm/appiance as zfw.  
+
+/opt/openziti/etc/ebpf_config.json :
+{"InternalInterfaces":[{"Name":"ens37"},{"Name":"ens33"}], "ExternalInterfaces":[{"Name":"ens33"}]}
+
+Modifying -P state for the interface is optional but it allows for openziti interception inbound on the interface since the ExternalInterface
+operation defaults to -P, --per-interface-rules enabled which would mean interception rules would be ignored unless
+ens33 was in the interface list for that rule.  The current interface to ziti-edge-tunnel does not allow it to specify and interface
+so all auto-created rules have an empty interface list. 
+
+/opt/openziti/bin/user/user_rules.sh
+sudo /opt/openziti/bin/zfw -P ens33 -d 
+
+finally
+restart wrapper service
+sudo systemctl restart ziti-wrapper.service
+
+Thats it you are now able to track outbound connection states for internal containers and allow inbound traffic if connection
+was initiated by the internal container.
     
-
-
 ### Manually Detaching from interface:
 
 ```bash

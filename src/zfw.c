@@ -112,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.7";
+const char *argp_program_version = "0.1.8";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -561,41 +561,45 @@ void print_rule(struct tproxy_key *key, struct tproxy_tuple *tuple, int *rule_co
         sprintf(dpts, "dpts=%d:%d", ntohs(tuple->port_mapping[tuple->index_table[x]].low_port),
                 ntohs(tuple->port_mapping[tuple->index_table[x]].high_port));
         if (intercept && !passthru)
-        {
+        {   bool entry_exists = false;
             if(tun_mode && ntohs(tuple->port_mapping[tuple->index_table[x]].tproxy_port) == 65535){
                 printf("%-11s\t%-3s\t%-20s\t%-32s%-17s\tTUNMODE redirect:%-15s", "TUNMODE", proto, scidr_block, dcidr_block,
                        dpts, o_tunif.ifname);
+                entry_exists = true;
+                *rule_count += 1;
             }
-            else if (ntohs(tuple->port_mapping[tuple->index_table[x]].tproxy_port) > 0)
+            else if(ntohs(tuple->port_mapping[tuple->index_table[x]].tproxy_port) > 0)
             {
                 printf("%-11s\t%-3s\t%-20s\t%-32s%-17s\tTPROXY redirect 127.0.0.1:%-6d", "TPROXY", proto, scidr_block, dcidr_block,
                        dpts, ntohs(tuple->port_mapping[tuple->index_table[x]].tproxy_port));
-                char interfaces[IF_NAMESIZE * MAX_IF_LIST_ENTRIES + 8] = "";
-                for (int i = 0; i < MAX_IF_LIST_ENTRIES; i++)
-                {
-                    if (tuple->port_mapping[tuple->index_table[x]].if_list[i])
-                    {
-                        if_key = tuple->port_mapping[tuple->index_table[x]].if_list[i];
-                        struct ifindex_ip4 ifip4;
-                        if_map.value = (uint64_t)&ifip4;
-                        int lookup = syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &if_map, sizeof(if_map));
-                        if (!lookup)
-                        {
-                            strcat(interfaces, ifip4.ifname);
-                            strcat(interfaces, ",");
-                        }
-                    }
-                }
-                if (strlen(interfaces))
-                {
-                    printf("%s%.*s%s\n", "[", (int)(strlen(interfaces) - 1), interfaces, "]");
-                }
-                else
-                {
-                    printf("%s\n", "[]");
-                }
+                entry_exists = true;
                 *rule_count += 1;
             }
+            char interfaces[IF_NAMESIZE * MAX_IF_LIST_ENTRIES + 8] = "";
+            for (int i = 0; i < MAX_IF_LIST_ENTRIES; i++)
+            {
+                if (tuple->port_mapping[tuple->index_table[x]].if_list[i])
+                {
+                    if_key = tuple->port_mapping[tuple->index_table[x]].if_list[i];
+                    struct ifindex_ip4 ifip4;
+                    if_map.value = (uint64_t)&ifip4;
+                    int lookup = syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &if_map, sizeof(if_map));
+                    if (!lookup)
+                    {
+                        strcat(interfaces, ifip4.ifname);
+                        strcat(interfaces, ",");
+                    }
+                }
+            }
+            if (strlen(interfaces))
+            {
+                printf("%s%.*s%s\n", "[", (int)(strlen(interfaces) - 1), interfaces, "]");
+            }
+            else if(entry_exists)
+            {
+                printf("%s\n", "[]");
+            }
+            
         }
         else if (passthru && !intercept)
         {
@@ -1858,6 +1862,7 @@ static struct argp_option options[] = {
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
     program_name = state->name;
+    uint32_t idx = 0;
     switch (key)
     {
     case 'D':
@@ -1884,8 +1889,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
             exit(1);
         }
         interface = true;
-        uint32_t idx = 0;
         get_index(arg, &idx);
+        if(idx == 0){
+            printf("Interface not found: %s\n", arg);
+            exit(1);
+        }
         if (ifcount < MAX_IF_LIST_ENTRIES)
         {
             if ((idx > 0) && (idx < MAX_IF_ENTRIES))
@@ -1917,6 +1925,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
             fprintf(stderr, "%s --help for more info\n", program_name);
             exit(1);
         }
+        get_index(arg, &idx);
+        if(strcmp("all", arg) && idx == 0){
+            printf("Interface not found: %s\n", arg);
+            exit(1);
+        }
         per_interface = true;
         if (!strcmp("all", arg))
         {
@@ -1937,6 +1950,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
             fprintf(stderr, "%s --help for more info\n", program_name);
             exit(1);
         }
+        get_index(arg, &idx);
+        if(strcmp("all", arg) && idx == 0){
+            printf("Interface not found: %s\n", arg);
+            exit(1);
+        }
         tun = true;
         if (!strcmp("all", arg))
         {
@@ -1952,6 +1970,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         {
             fprintf(stderr, "Interface name or all required as arg to -X, --set-tc-filter: %s\n", arg);
             fprintf(stderr, "%s --help for more info\n", program_name);
+            exit(1);
+        }
+        get_index(arg, &idx);
+        if(strcmp("all", arg) && idx == 0){
+            printf("Interface not found: %s\n", arg);
             exit(1);
         }
         tcfilter = true;
@@ -1978,6 +2001,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         {
             fprintf(stderr, "Interface name or all required as arg to -e, --icmp-echo: %s\n", arg);
             fprintf(stderr, "%s --help for more info\n", program_name);
+            exit(1);
+        }
+        get_index(arg, &idx);
+        if(strcmp("all", arg) && idx == 0){
+            printf("Interface not found: %s\n", arg);
             exit(1);
         }
         echo = true;
@@ -2056,6 +2084,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
             fprintf(stderr, "%s --help for more info\n", program_name);
             exit(1);
         }
+        get_index(arg, &idx);
+        if(strcmp("all", arg) && idx == 0){
+            printf("Interface not found: %s\n", arg);
+            exit(1);
+        }
         verbose = true;
         if (!strcmp("all", arg))
         {
@@ -2071,6 +2104,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         {
             fprintf(stderr, "Interface name or all required as arg to -x, --disable-ssh: %s\n", arg);
             fprintf(stderr, "%s --help for more info\n", program_name);
+            exit(1);
+        }
+        get_index(arg, &idx);
+        if(strcmp("all", arg) && idx == 0){
+            printf("Interface not found: %s\n", arg);
             exit(1);
         }
         ssh_disable = true;
@@ -2236,7 +2274,7 @@ int main(int argc, char **argv)
         usage("Missing argument -r, --route requires -I --insert, -D --delete or -F --flush");
     }
 
-    if (disable && (!ssh_disable && !echo && !verbose && !per_interface && !tc && !tcfilter && !tun))
+    if (disable && (!ssh_disable && !echo && !verbose && !per_interface && !tcfilter && !tun))
     {
         usage("Missing argument at least one of -e, -v, -x, or -E, -P, -T, -X");
     }
@@ -2394,7 +2432,7 @@ int main(int argc, char **argv)
         interface_diag();
         exit(0);
     }
-    else if (tc || tcfilter)
+    else if (tcfilter)
     {
         interface_tc();
         exit(0);
