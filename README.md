@@ -185,10 +185,10 @@ sudo zfw --set-tc-filter <interface name>  --direction <ingress | egress> --disa
     interface setting and can be set for all interfaces except loopback.  This would need to be put in
     /opt/openziti/bin/user/user_rules.sh to survive reboot.
 
-Usage: ./zfw -x <interface-name> | all
+Usage: zfw -x <interface-name> | all
 
 ```
-sudo sudo ./zfw -x ens33
+sudo zfw -x ens33
 ```
 
 The -t, --tproxy-port is has a dual purpose one it to signify the tproxy port used by openziti routers in tproxy mode and the other is to
@@ -199,10 +199,10 @@ If you disable default ssh ahndling and assuming device interface ip is 172.16.2
 filtering to only allow rule for ip source ip 10.1.1.1/32 to reach 172.16.240.1. Notice -t 0 this means
 it drops to local OS stack not redirected to tproxy or tunnel.
 
-Usage: ./zfw -I -c <ip dest address or prefix> -m <dest prefix len> -o <origin address or prefix> -n <origin prefix len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>
+Usage: zfw -I -c <ip dest address or prefix> -m <dest prefix len> -o <origin address or prefix> -n <origin prefix len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>
 
 ```
-sudo sudo ./zfw -I -c 172.16.240.1 -m 32 -o 10.1.1.1 -n 32  -p tcp -l 22 -h 22 -t 0
+sudo zfw -I -c 172.16.240.1 -m 32 -o 10.1.1.1 -n 32  -p tcp -l 22 -h 22 -t 0
 ```
 
 Example: Monitor ebpf trace messages
@@ -227,26 +227,26 @@ sudo cat /sys/kernel/debug/tracing/trace_pipe
 Example: Remove previous entry from map
 
 
-Usage: ./zfw -D -c <ip dest address or prefix> -m <prefix len> -l <low_port> -p <protocol>
+Usage: zfw -D -c <ip dest address or prefix> -m <prefix len> -l <low_port> -p <protocol>
 
 ```
-sudo ./zfw -D -c 172.16.240.1 -m 32 -l 5060 -p udp
+sudo zfw -D -c 172.16.240.1 -m 32 -l 5060 -p udp
 ```
 
 Example: Remove all rule entries from FW
 
-Usage: ./zfw -F
+Usage: zfw -F
 
 ```
-sudo ./zfw -F
+sudo zfw -F
 ```
 
 Example: List all rules in map
 
-Usage: ./zfw -L
+Usage: zfw -L
 
 ```
-sudo ./zfw -L
+sudo zfw -L
 ```
 
     target     proto    origin              destination               mapping:                                                   interface list
@@ -264,7 +264,7 @@ sudo ./zfw -L
     TUNMODE    udp	    0.0.0.0/0           100.64.0.0/10             dpts=1:65535     	        TUNMODE redirect:tun0            []
 
 Example: List rules in map for a given prefix and protocol
-Usage: ./zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
+Usage: zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
 ```  
 sudo zfw -L -c 192.168.100.100 -m 32 -p udp
 ```
@@ -275,7 +275,7 @@ PASSTHRU   udp      0.0.0.0/0        192.168.100.100/32       dpts=50000:60000 	
 
 
 Example: List rules in map for a given prefix
-Usage: ./zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
+Usage: zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
 ```
 sudo zfw -L -c 192.168.100.100 -m 32
 ```
@@ -287,9 +287,9 @@ PASSTHRU   tcp      0.0.0.0/0        192.168.100.100/32       dpts=60000:65535	 
 
 Example: List all interface settings
 
-Usage: ./zfw -L -E
+Usage: zfw -L -E
 ```
-sudo ./zfw -L -E
+sudo zfw -L -E
 ```
 
     lo: 1
@@ -334,7 +334,7 @@ sudo ./zfw -L -E
 
 Example: Remove all tc-ebpf on router
 
-Usage: ./zfw -Q,--disable-ebpf
+Usage: zfw -Q,--disable-ebpf
 ```
 sudo zfw --disable-ebpf
 ```

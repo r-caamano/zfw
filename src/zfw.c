@@ -112,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.6";
+const char *argp_program_version = "0.1.7";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -2165,6 +2165,11 @@ int main(int argc, char **argv)
     if (tcfilter && !object && !disable)
     {
         usage("-X, --set-tc-filter requires -O, --object-file for add operation");
+    }
+
+    if (tcfilter && !direction)
+    {
+        usage("-X, --set-tc-filter requires -z, --direction for add operation");
     }
 
     if (ebpf_disable)

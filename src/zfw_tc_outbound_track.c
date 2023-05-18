@@ -47,11 +47,11 @@ struct tuple_key {
 struct tcp_state {
     unsigned long long tstamp;
     int syn;
-    int fin;
+    int sfin;
+    int cfin;
     int ack;
     int rst;
     int est;
-    int pad;
 };
 
 /*Value to udp_map*/
@@ -289,16 +289,18 @@ int bpf_sk_splice(struct __sk_buff *skb){
         };
             insert_tcp(ts, tcp_state_key);
             if(local_diag->verbose){
-                bpf_printk("sent syn to 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs  (tuple->ipv4.dport));
+                bpf_printk("received syn from client 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                bpf_printk("forwardedsyn to 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs  (tuple->ipv4.dport));
             }
         }
         else if(tcph->fin){
             tstate = get_tcp(tcp_state_key);
             if(tstate){
                 tstate->tstamp = tstamp;
-                tstate->fin = 1;
+                tstate->cfin = 1;
                 if(local_diag->verbose){
-                    bpf_printk("sent fin to 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                    bpf_printk("recieved fin from client 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                    bpf_printk("forwarded fin to 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                 }
             }
         }
@@ -307,12 +309,14 @@ int bpf_sk_splice(struct __sk_buff *skb){
             if(tstate){
                 del_tcp(tcp_state_key);
                 if(local_diag->verbose){
-                    bpf_printk("Received rst from client 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                    bpf_printk("recieved rst from client 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                    bpf_printk("forwarded rst to 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                 }
                 tstate = get_tcp(tcp_state_key);
                 if(!tstate){
                     if(local_diag->verbose){
-                        bpf_printk("removed tcp state %X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                        bpf_printk("removed state esablished by client 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                        bpf_printk("to %X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                     }
                 }
             }
@@ -322,21 +326,24 @@ int bpf_sk_splice(struct __sk_buff *skb){
             if(tstate){
                 if(tstate->ack && tstate->syn){
                     if(local_diag->verbose){
+                        bpf_printk("client 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
                         bpf_printk("Established tcp connection to : 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                     }
                     tstate->tstamp = tstamp;
                     tstate->syn = 0;
                     tstate->est = 1;
                 }
-                if(tstate->fin == 1){
+                if((tstate->sfin == 1) && (tstate->cfin == 1)){
                     del_tcp(tcp_state_key);
                     if(local_diag->verbose){
-                        bpf_printk("sent final ack to 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                        bpf_printk("received final ack from client 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                        bpf_printk("forwarded final ack to 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                     }
                     tstate = get_tcp(tcp_state_key);
                     if(!tstate){
                         if(local_diag->verbose){
-                            bpf_printk("removed tcp state: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport ));
+                            bpf_printk("removed state esablished by client 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                            bpf_printk("to: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport ));
                         }
                     }
                 }
