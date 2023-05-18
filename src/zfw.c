@@ -1972,6 +1972,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
             fprintf(stderr, "%s --help for more info\n", program_name);
             exit(1);
         }
+        get_index(arg, &idx);
+        if(strcmp("all", arg) && idx == 0){
+            printf("Interface not found: %s\n", arg);
+            exit(1);
+        }
         tcfilter = true;
         if (!strcmp("all", arg))
         {
