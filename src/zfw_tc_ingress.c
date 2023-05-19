@@ -795,12 +795,14 @@ int bpf_sk_splice(struct __sk_buff *skb){
                 if(tstamp > (ustate->tstamp + 30000000000)){
                     if(local_diag->verbose){
                         bpf_printk("udp inbound matched expired state from 0x%X:%d\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                        bpf_printk("to 0x%X: %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                     }
                     del_udp(udp_state_key);
                     ustate = get_udp(udp_state_key);
                     if(!ustate){
                         if(local_diag->verbose){
                             bpf_printk("expired udp state removed from 0x%X:%d\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                            bpf_printk("to 0x%X: %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                         }
                     }
                 }

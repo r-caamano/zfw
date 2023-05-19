@@ -389,7 +389,8 @@ int bpf_sk_splice(struct __sk_buff *skb){
                 };
                 insert_udp(us, udp_state_key);
                 if(local_diag->verbose){
-                    bpf_printk("udp conv initiated to 0x%X: %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                    bpf_printk("udp conv initiated from 0x%X: %d\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                    bpf_printk(" to 0x%X: %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                 }
             }
             else if(ustate){
