@@ -6,7 +6,7 @@ on: [push]
 
 env:
   APP_NAME: 'zfw'
-  MAINTAINER: 'r-caamano'
+  MAINTAINER: 'Robert Caamano'
   DESC: 'An ebpf based statefull fw for openziti edge-routers and tunnelers'
 
 jobs: 
@@ -45,10 +45,10 @@ jobs:
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN
           touch ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Package: ${{ env.APP_NAME }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
-          echo Depends: ziti-edge-tunnel >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo 'Pre-Depends: ziti-edge-tunnel (>= 0.21.0), linux-image-generic (>= 5.15.0)' >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Version: ${{ steps.version.outputs.version }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Architecture: ${{ matrix.goarch }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
-          echo Maintainer: {{ env.MAINTAINER }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Maintainer: ${{ env.MAINTAINER }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Description: ${{ env.DESC }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/user
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/etc
@@ -111,10 +111,10 @@ jobs:
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN
           touch ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Package: ${{ env.APP_NAME }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
-          echo Depends: ziti-edge-tunnel >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo 'Pre-Depends: ziti-edge-tunnel (>= 0.21.0), linux-image-generic (>= 5.15.0)' >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Version: ${{ steps.version.outputs.version }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Architecture: ${{ matrix.goarch }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
-          echo Maintainer: {{ env.MAINTAINER }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo Maintainer: ${{ env.MAINTAINER }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Description: ${{ env.DESC }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/user
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/etc

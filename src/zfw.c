@@ -112,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.8";
+const char *argp_program_version = "0.1.9";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -687,11 +687,10 @@ void print_rule(struct tproxy_key *key, struct tproxy_tuple *tuple, int *rule_co
 void usage(char *message)
 {
     fprintf(stderr, "%s : %s\n", program_name, message);
-    fprintf(stderr, "Usage: zfw -I -c <dest cidr> -m <dest cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <proto id>\n");
-    fprintf(stderr, "       zfw -I -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <proto>\n");
-    fprintf(stderr, "       zfw -D -c <dest cidr> -m <dest cidr len> -l <low_port> -p <protocol id>\n");
-    fprintf(stderr, "       zfw -L -c <dest cidr> -m <dest cidr len> -p <protocol id>\n");
-    fprintf(stderr, "       zfw -L -c <dest cidr> -m <dest cidr len> -p <protocol id>\n");
+    fprintf(stderr, "Usage: zfw -I -c <dest cidr> -m <dest cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>\n");
+    fprintf(stderr, "       zfw -I -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>\n");
+    fprintf(stderr, "       zfw -D -c <dest cidr> -m <dest cidr len> -l <low_port> -p <protocol>\n");
+    fprintf(stderr, "       zfw -L -c <dest cidr> -m <dest cidr len> -p <protocol>\n");
     fprintf(stderr, "       zfw -L <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len>\n");
     fprintf(stderr, "       zfw -F\n");
     fprintf(stderr, "       zfw -L\n");
@@ -1837,7 +1836,7 @@ static struct argp_option options[] = {
     {"set-tun-mode", 'T', "", 0, "set tun mode on interface", 0},
     {"disable-ebpf", 'Q', NULL, 0, "delete tc from all interface and remove all maps", 0},
     {"per-interface-rules", 'P', "", 0, "set interface to per interface rule aware", 0},
-    {"disable-ssh", 'x', "", 0, "disable inbound ssh echo to interface (default enabled)", 0},
+    {"disable-ssh", 'x', "", 0, "disable inbound ssh to interface (default enabled)", 0},
     {"dcidr-block", 'c', "", 0, "Set dest ip prefix i.e. 192.168.1.0 <mandatory for insert/delete/list>", 0},
     {"icmp-echo", 'e', "", 0, "enable inbound icmp echo to interface", 0},
     {"verbose", 'v', "", 0, "enable verbose tracing on interface", 0},
