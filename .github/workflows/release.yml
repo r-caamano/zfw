@@ -46,7 +46,7 @@ jobs:
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN
           touch ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Package: ${{ env.APP_NAME }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
-          echo 'Pre-Depends: ziti-edge-tunnel (>= 0.21.0), linux-image-generic (>= 5.15.0)' >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo 'Pre-Depends: ziti-edge-tunnel (>= 0.21.0)' >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Version: ${{ steps.version.outputs.version }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Architecture: ${{ matrix.goarch }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Maintainer: ${{ env.MAINTAINER }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
@@ -112,7 +112,7 @@ jobs:
           mkdir -p ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN
           touch ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Package: ${{ env.APP_NAME }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
-          echo 'Pre-Depends: ziti-edge-tunnel (>= 0.21.0), linux-image-generic (>= 5.15.0)' >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
+          echo 'Pre-Depends: ziti-edge-tunnel (>= 0.21.0)' >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Version: ${{ steps.version.outputs.version }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Architecture: ${{ matrix.goarch }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
           echo Maintainer: ${{ env.MAINTAINER }} >> ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/DEBIAN/control
