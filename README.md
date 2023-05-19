@@ -43,7 +43,7 @@ Configure:
 i.e. ens33
     {"InternalInterfaces":[{"Name":"ens33"}]}
 Note if you want to add more than one add to list
-    {"InternalInterfaces":[{"Name":"ens33"} {"Name":"ens37"}]}
+    {"InternalInterfaces":[{"Name":"ens33"}, {"Name":"ens37"}]}
 ```
 
 - Add user configured rules:
