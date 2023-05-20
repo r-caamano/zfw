@@ -112,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.10";
+const char *argp_program_version = "0.1.11";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -688,14 +688,15 @@ void usage(char *message)
 {
     fprintf(stderr, "%s : %s\n", program_name, message);
     fprintf(stderr, "Usage: zfw -I -c <dest cidr> -m <dest cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>\n");
-    fprintf(stderr, "       zfw -I -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>\n");
     fprintf(stderr, "       zfw -D -c <dest cidr> -m <dest cidr len> -l <low_port> -p <protocol>\n");
+    fprintf(stderr, "       zfw -I -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>\n");
+    fprintf(stderr, "       zfw -D -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len> -l <low_port> -p <protocol>\n");
     fprintf(stderr, "       zfw -L -c <dest cidr> -m <dest cidr len> -p <protocol>\n");
-    fprintf(stderr, "       zfw -L <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len>\n");
-    fprintf(stderr, "       zfw -F\n");
+    fprintf(stderr, "       zfw -L -c <dest cidr> -m <dest cidr len> -o <origin cidr> -n <origin cidr len>\n");
     fprintf(stderr, "       zfw -L\n");
     fprintf(stderr, "       zfw -L -i\n");
     fprintf(stderr, "       zfw -L -f\n");
+    fprintf(stderr, "       zfw -F\n");
     fprintf(stderr, "       zfw -e <ifname>\n");
     fprintf(stderr, "       zfw -e <ifname> -d\n");
     fprintf(stderr, "       zfw -v <ifname>\n");
