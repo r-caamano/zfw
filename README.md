@@ -217,7 +217,7 @@ sudo systemctl restart ziti-edge-tunnel.service
 
 ## Ebpf Map User Space Management
 ---
-### User space manual cofiguration
+### User space manual configuration
 ziti-edge tunnel will automatically populate rules for configured ziti services so the following is if
 you want to configure additional rules outside of the automated ones.
 
