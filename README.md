@@ -2,16 +2,16 @@
 --- 
 This firewall applicaion utilizes both tc-ebpf and xdp to provide statefull firewalling
 for [openziti](https://docs.openziti.io/) ziti-edge-tunnel installation and is meant as a replacement for ufw at least for
-ingress filtering.  It can be used in conjuction with ufw's masquarade feature on a wan facing interface if
+ingress filtering.  It can be used in conjunction with ufw's masquerade feature on a wan facing interface if
 the zfw_outbound_track.o is activated in the egress direction. I can also be used in conjunction with openziti
-edge-routers deb package / manual instructions not yet available but comming soon.
+edge-routers deb package / manual instructions not yet available but coming soon.
 
 
 ## Build
 ---
 [To build zfw from source. Click here!](./BUILD.md)
 
-## Management After Deployment
+## Management After Deployment (NEW CONFIG OPERATION for Internal/External interfaces see below)
 ---
 
 The program is designed to be deployed as systemd services if deployed via .deb package with
@@ -22,7 +22,7 @@ an existing ziti-edge-tunnel(v21.0 +) on Ubuntu 22.04(amd64/arm64)service instal
 sudo dpkg -i zfw_<ver>_<arch>.deb
 ```
 
-files will be installed in the following directories
+files will be installed in the following directories.
 ```
 /etc/systemd/system <systemd service files>  
 /usr/sbin <symbolic link to zfw executable>
@@ -37,13 +37,15 @@ Configure:
     sudo vi /opt/openziti/etc/ebpf_config.json
 ```
 
-- Replace ens33 in line with:{"InternalInterfaces":[{"Name":"ens33"}]} 
-  Replace with interface that you want to enable for ingress firewalling/ openziti interception.
+- Replace ens33 in line with:{"InternalInterfaces":[{"Name":"ens33" ,"OutboundPassThroughTrack": false, "PerInterfaceRules": false}], "ExternalInterfaces":[]}
+  Replace with interface that you want to enable for ingress firewalling/ openziti interception and 
+  optionally ExternalInterfaces if running containers or other subtending devices (Described in more detail
+  later in this README.md).
 ```
 i.e. ens33
-    {"InternalInterfaces":[{"Name":"ens33"}]}
+    {"InternalInterfaces":[{"Name":"ens33"}], "ExternalInterfaces":[]}
 Note if you want to add more than one add to list
-    {"InternalInterfaces":[{"Name":"ens33"}, {"Name":"ens37"}]}
+    {"InternalInterfaces":[{"Name":"ens33"}, {"Name":"ens37"}], "ExternalInterfaces":[]}
 ```
 
 - Add user configured rules:
@@ -56,27 +58,28 @@ Note if you want to add more than one add to list
 ```  
     sudo systemctl enable ziti-fw-init.service
     sudo systemctl enable ziti-wrapper.service 
-    sudo systemctl restart ziti-edge-tunnel 
+    sudo systemctl restart ziti-edge-tunnel.service 
 ```
 The Service will automatically configure ufw (if enabled) to hand off to ebpf on configured interface(s).  Exception is icmp
-which must be maually enabled if its been disabled in ufw.  also to allow icmp to ip of configured interface you would need to
+which must be manually enabled if it's been disabled in ufw.  Also to allow icmp echos to reach the ip of attched interface you would need to
 set icmp to enabled in the /opt/openziti/bin/user/user_rules.sh file i.e. sudo zfw -e ens33 and then restart ziti-wrapper.service. 
 
 i.e. from above example ebpf_config zfw sets
 sudo ufw allow in on <ens33> to any
-Verify running
+
+Verify running.
 ```
    sudo zfw -L
 ```
 output:
-   if running assuming using default address for ziti-edge-tunnel should see output like:
+   if running and assuming you are using the default address range for ziti-edge-tunnel should see output like:
 
 target  	proto	origin              destination             mapping:                				                interface list                 
 --------	-----	-----------------	------------------		-------------------------------------------------------	-----------------
 TUNMODE    	tcp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535     	TUNMODE redirect:tun0               []
 TUNMODE    	udp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535     	TUNMODE redirect:tun0               []
 
-verify running on the configured interface i.e.
+Verify running on the configured interface i.e.
 ```
 sudo tc filter show dev ens33 ingress
 ```
@@ -124,7 +127,7 @@ TCP:
 
 UDP:
     State will remain active as long as packets tuples matching SRCIP/SPORT/DSTIP/DPORT are seen in
-    either direction within 30 seconds.  If no packets seen in either dorection the state will expire.
+    either direction within 30 seconds.  If no packets seen in either direction the state will expire.
     If an external packet enters the interface after expire the entry will be deleted.  if an egress
     packet fined a matching expired state it will return the state to active.
 
@@ -132,71 +135,76 @@ In order to support this per interface rule awareness was added which allows eac
 to match a list of connected interfaces.  On a per interface basis you can decide to honor that list or not via
 a per-prefix-rules setting in the following manner via the zfw utility
 
-singly:
+#### Automated setup
+
+#### Two Interface config with ens33 facing internet and ens37 facing local lan
+
+**Note: Operation in v0.1.12 is different from previous versions and requires that an interface is only configured as**
+**either Internal or External and should not be configured as both**
 ```
-sudo zfw -P <ifname>  <this would be set on the wan facing interface so that it would not have access to openziti services unless manully added >
-                        <To survive restart this would need to be added to the /opt/opnziti/user/user_rule.sh>
+sudo vi /opt/openziti/etc/ebpf_config.json
 ```
-or 
-
-all interfaces:
+example json
 ```
-sudo zfw -P all
+{"InternalInterfaces":[{"Name":"ens37","OutboundPassThroughTrack": false, PerInterfaceRules: false}],
+ "ExternalInterfaces":[{"Name":"ens33", OutboundPassThroughTrack: true, PerInterfaceRules: true}]}
 ```
-
-In order to assign 1 to 3 interfaces to a rule you would use the new -N option in combination with the -I i.e.
-to associate the rule to end37 and lo:
-
-```
-sudo zfw -I -c 172.16.31.0 -m 24 -l 443 -h 443 -t 44000 -p tcp -N ens37 -N lo
-```
-
-You will also need to enable outbound tracking on the external interface.  You can do so with the following:
-Assuming ens33 is your wan facing interface you 
-
-sudo vi /opt/openziti/etc/ebpf_config.yml
-
-add a new key ExternalInterfaces like this
-{"InternalInterfaces":[{"Name":"ens37"},{"Name":"ens33"}], "ExternalInterfaces":[{"Name":"ens33"}]}
-
 The above JSON sets up ens33 to be an internal interface (No outbound tracking) and ens33 as an external interface
-with outbound tracking.  It also automatically adds runs the sudo zfw -P ens33 so ens33 requires -N to add inbound
-rules to it and will ignore rules where it is not in the interface list
+with outbound tracking (Default for External Interface).  It also automatically adds runs the sudo zfw -P ens33 so ens33
+(default for ExternalInterfaces) which requires -N to add inbound rules to it and will ignore rules where it is not in the interface list.
+Keys "OutboundPassThroughTrack and PerInterfaceRules shown with default values you only need to add them if you
+do not want the default operation for the interface type.
 
-### Supporting Containers / VMs
+#### Single Interface config with ens33 facing lan local lan
+example json
+```
+/opt/openziti/etc/ebpf_config.json - Assuming containers only need to open connections to internet
+{"InternalInterfaces":[{"Name":"ens37","OutboundPassthroughTrack": true, PerInterfaceRules: false}],
+ "ExternalInterfaces":[]}
+```
+**Double check that your json is correct mistakes can render the firewall**
 
-In the case of containers(i.e Docker) the traffic will appear to the firewall as though its external passthrough
-traffic and not host initiated. In this case we again can use the "ExternalInterfaces":[{"Name":"ens33"}] key to track
-outbound container session.  Example single interface config with lan if ens33 and a cocker container running on the same
-vm/appiance as zfw.  
+disable zfw and restart ziti-edge-tunnel service
+```
+sudo zfw -Q
+sudo /opt/openziti/bin/start_ebpf.py
+sudo systemctl restart ziti-edge-wrapper.service
 
-/opt/openziti/etc/ebpf_config.json :
-{"InternalInterfaces":[{"Name":"ens37"},{"Name":"ens33"}], "ExternalInterfaces":[{"Name":"ens33"}]}
+```
 
-Modifying -P state for the interface is optional but it allows for openziti interception inbound on the interface since the ExternalInterface
-operation defaults to -P, --per-interface-rules enabled which would mean interception rules would be ignored unless
-ens33 was in the interface list for that rule.  The current interface to ziti-edge-tunnel does not allow it to specify and interface
-so all auto-created rules have an empty interface list. 
+### Supporting Internal Containers / VMs
 
-/opt/openziti/bin/user/user_rules.sh
-sudo /opt/openziti/bin/zfw -P ens33 -d 
+Traffic from containers like docker appears just like passthrough traffic to ZFW so you configure it the same as described above for 
+normal external pass through traffic.
 
-finally
-restart wrapper service
-sudo systemctl restart ziti-wrapper.service
 
-Thats it you are now able to track outbound connection states for internal containers and allow inbound traffic if connection
-was initiated by the internal container.
-    
 ### Manually Detaching from interface:
 
 ```bash
 sudo zfw --set-tc-filter <interface name>  --direction <ingress | egress> --disable
 ```
 
+### Upgrading
+```
+sudo systemctl stop ziti-wrapper.service
+sudo dpkg -i <zfw_<ver>_<arch>.deb
+```
+After updating reboot the system (preferred method) 
+```
+sudo reboot
+```
+
+or 
+
+
+```
+sudo zfw -Q
+sudo systemctl start ziti-edge-tunnel.service
+```
+
 ## Ebpf Map User Space Management
 ---
-- User space maual cofiguration
+- User space manual cofiguration
   ziti-edge tunnel will automatically populate rules for configured ziti services so the following is if
   you want to configure additional rules outside of the automated ones.
 
@@ -220,7 +228,7 @@ The -t, --tproxy-port is has a dual purpose one it to signify the tproxy port us
 identify either local passthrough with value of 0 and the other is tunnel redirect mode with value of 65535.
 
 - Example 
-If you disable default ssh ahndling and assuming device interface ip is 172.16.240.1 and you want to insert map entry to with source 
+If you disable default ssh handling and assuming device interface ip is 172.16.240.1 and you want to insert map entry to with source 
 filtering to only allow rule for ip source ip 10.1.1.1/32 to reach 172.16.240.1. Notice -t 0 this means
 it drops to local OS stack not redirected to tproxy or tunnel.
 

@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.1.12] - 2023-05-21
+
+###
+
+- Changed interface ebpf settings assignement which may require alteration of existing config if setup for exteral
+  outboundd tracking.   
+
+  Added keys to /opt/openziti/etc/ebpf_config.json
+   - PerInterfaceRules - sets state of per interface rules awareness.
+     -  InternalInterfaces default: false
+     -  ExternalInterfaces default: true
+   - OutboundPassThroughTrack
+      -  InternalInterfaces default: false
+      -  ExternalInterfaces default: true
+
+- Added empty ExternalInterfaces key to ebpf_config.json.sample and new keys described above with default values in
+  the InternalInterfaces object.  These can be excluded since they are default and provided only for example purposes.
+- /opt/openziti/start_ebpf.py updated to parse new keys and implement new interface deployment logic.
+
 # [0.1.11] - 2023-05-17
 
 ###

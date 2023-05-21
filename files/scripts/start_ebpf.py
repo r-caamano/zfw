@@ -16,6 +16,8 @@ def tc_status(interface, direction):
 
 internal_list = []
 external_list = []
+per_interface_rules = dict()
+outbound_passthrough_track = dict()
 if(os.path.exists('/opt/openziti/etc/ebpf_config.json')):
     with open('/opt/openziti/etc/ebpf_config.json','r') as jfile:
         try:
@@ -25,8 +27,26 @@ if(os.path.exists('/opt/openziti/etc/ebpf_config.json')):
                     i_interfaces = config["InternalInterfaces"]
                     if len(i_interfaces):
                         for interface in i_interfaces:
-                            print("Attempting to add ebpf ingress to: ",interface["Name"])
-                            internal_list.append(interface["Name"])
+                            if("Name" in interface.keys()):
+                                print("Attempting to add ebpf ingress to: ",interface["Name"])
+                                internal_list.append(interface["Name"])
+                                if("OutboundPassThroughTrack") in interface.keys():
+                                    if(interface["OutboundPassThroughTrack"]):
+                                        outbound_passthrough_track[interface["Name"]] = True;
+                                    else:
+                                        outbound_passthrough_track[interface["Name"]] = False;
+                                else:
+                                    outbound_passthrough_track[interface["Name"]] = False;
+                                if("PerInterfaceRules") in interface.keys():
+                                    if(interface["PerInterfaceRules"]):
+                                        per_interface_rules[interface["Name"]] = True;
+                                    else:
+                                        per_interface_rules[interface["Name"]] = False;
+                                else:
+                                    per_interface_rules[interface["Name"]] = False;
+                            else:
+                                print('Mandator key \"Name\" missing skipping internal interface entry!')
+                       
                 else:
                     print("No internal interfaces listed in /opt/openziti/etc/ebpf_config.json add at least one interface")
                     sys.exit(1)
@@ -34,8 +54,25 @@ if(os.path.exists('/opt/openziti/etc/ebpf_config.json')):
                     e_interfaces = config["ExternalInterfaces"]
                     if len(e_interfaces):
                         for interface in e_interfaces:
-                            print("Attempting to add ebpf egress to: ",interface["Name"])
-                            external_list.append(interface["Name"])
+                            if("Name" in interface.keys()):
+                                print("Attempting to add ebpf egress to: ",interface["Name"])
+                                external_list.append(interface["Name"])
+                                if("OutboundPassThroughTrack") in interface.keys():
+                                    if(interface["OutboundPassThroughTrack"]):
+                                        outbound_passthrough_track[interface["Name"]] = True;
+                                    else:
+                                        outbound_passthrough_track[interface["Name"]] = False;
+                                else:
+                                    outbound_passthrough_track[interface["Name"]] = True;
+                                if("PerInterfaceRules") in interface.keys():
+                                    if(interface["PerInterfaceRules"]):
+                                        per_interface_rules[interface["Name"]] = True;
+                                    else:
+                                        per_interface_rules[interface["Name"]] = False;
+                                else:
+                                    per_interface_rules[interface["Name"]] = True;
+                            else:
+                                print('Mandator key \"Name\" missing skipping external interface entry!')
                 else:
                     print("No External interfaces listed in /opt/openziti/etc/ebpf_config.json no outbound tracking")
         except Exception as e:
@@ -55,24 +92,48 @@ if os.system("/opt/openziti/bin/zfw -L -E"):
         if(not tc_status(i, "ingress")):
             test1 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
             time.sleep(1)
-            test2 = os.system("/opt/openziti/bin/zfw -T " + i)
-            if(test1 | test2):
+            if(test1):
                 os.system("/opt/openziti/bin/zfw -Q")
                 print("Cant attach " + i + " to tc ingress with " + ingress_object_file)
                 sys.exit(1)
             else:
                 print("Attached " + ingress_object_file + " to " + i)
                 os.system("sudo ufw allow in on " + i + " to any")
+            os.system("/opt/openziti/bin/zfw -T " + i)
+            if(per_interface_rules[i]):
+                os.system("/opt/openziti/bin/zfw -P " + i)
+        if(not tc_status(i, "egress")):
+            if(outbound_passthrough_track[i]):
+                test1 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + egress_object_file + " -z egress")
+                if(test1):
+                    print("Cant attach " + i + " to tc egress with " + egress_object_file) 
+                    os.system("/opt/openziti/bin/zfw -Q")
+                    sys.exit(1)
+                else:
+                    print("Attached " + egress_object_file + " to " + i)
     for e in external_list:
-        if(not tc_status(e, "egress")):
-            test1 = os.system("/opt/openziti/bin/zfw -X " + e + " -O " + egress_object_file + " -z egress")
-            test2 = os.system("/opt/openziti/bin/zfw -P " + e)
-            if(test1 | test2):
-                print("Cant attach " + e + " to tc egress with " + egress_object_file) 
+        if(not tc_status(e, "ingress")):
+            test1 = os.system("/opt/openziti/bin/zfw -X " + e + " -O " + ingress_object_file + " -z ingress")
+            if(test1):
                 os.system("/opt/openziti/bin/zfw -Q")
+                print("Cant attach " + e + " to tc ingress with " + ingress_object_file)
                 sys.exit(1)
             else:
-                print("Attached " + egress_object_file + " to " + e)
+                print("Attached " + ingress_object_file + " to " + e)
+                os.system("sudo ufw allow in on " +e + " to any")
+            time.sleep(1)
+            os.system("/opt/openziti/bin/zfw -T " + e)
+            if(per_interface_rules[e]):
+                os.system("/opt/openziti/bin/zfw -P " + e)
+        if(not tc_status(e, "egress")):
+            if(outbound_passthrough_track[e]):
+                test1 = os.system("/opt/openziti/bin/zfw -X " + e + " -O " + egress_object_file + " -z egress")
+                if(test1):
+                    print("Cant attach " + e + " to tc egress with " + egress_object_file) 
+                    os.system("/opt/openziti/bin/zfw -Q")
+                    sys.exit(1)
+                else:
+                    print("Attached " + egress_object_file + " to " + e)
     if(os.path.exists("/opt/openziti/bin/user/user_rules.sh")):
         print("Adding user defined rules")
         os.system("/opt/openziti/bin/user/user_rules.sh")
@@ -82,19 +143,42 @@ else:
     print("Flushed Table")
     for i in internal_list:
         if(not tc_status(i, "ingress")):
-          test1 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
-          test2 = os.system("/opt/openziti/bin/zfw -T " + i)
-          if(test1 | test2):
-              print("Cant attach " + i + " to tc ingress with " + ingress_object_file)
-              sys.exit(1)
-          else:
-            os.system("sudo ufw allow in on " + i + " to any")
+            test1 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + ingress_object_file + " -z ingress")
+            time.sleep(1)
+            if(test1):
+                print("Cant attach " + i + " to tc ingress with " + ingress_object_file)
+            else:
+                print("Attached " + ingress_object_file + " to " + i)
+                os.system("sudo ufw allow in on " + i + " to any")
+            os.system("/opt/openziti/bin/zfw -T " + i)
+            if(per_interface_rules[i]):
+                os.system("/opt/openziti/bin/zfw -P " + i)
+        if(not tc_status(i, "egress")):
+            if(outbound_passthrough_track[i]):
+                test1 = os.system("/opt/openziti/bin/zfw -X " + i + " -O " + egress_object_file + " -z egress")
+                if(test1):
+                    print("Cant attach " + i + " to tc egress with " + egress_object_file) 
+                else:
+                    print("Attached " + egress_object_file + " to " + i)
     for e in external_list:
+        if(not tc_status(e, "ingress")):
+            test1 = os.system("/opt/openziti/bin/zfw -X " + e + " -O " + ingress_object_file + " -z ingress")
+            if(test1):
+                print("Cant attach " + e + " to tc ingress with " + ingress_object_file)
+            else:
+                print("Attached " + ingress_object_file + " to " + e)
+                os.system("sudo ufw allow in on " +e + " to any")
+            time.sleep(1)
+            os.system("/opt/openziti/bin/zfw -T " + e)
+            if(per_interface_rules[e]):
+                os.system("/opt/openziti/bin/zfw -P " + e)
         if(not tc_status(e, "egress")):
-          test1 = os.system("/opt/openziti/bin/zfw -X " + e + " -O " + egress_object_file + " -z egress")
-          test2 = os.system("/opt/openziti/bin/zfw -P " + e)
-          if(test1 | test2):
-              print("Cant attach " + e + " to tc egress with " + egress_object_file)
+            if(outbound_passthrough_track[e]):
+                test1 = os.system("/opt/openziti/bin/zfw -X " + e + " -O " + egress_object_file + " -z egress")
+                if(test1):
+                    print("Cant attach " + e + " to tc egress with " + egress_object_file) 
+                else:
+                    print("Attached " + egress_object_file + " to " + e)
     if(os.path.exists("/opt/openziti/bin/user/user_rules.sh")):
         print("Adding user defined rules")
         os.system("/opt/openziti/bin/user/user_rules.sh")
