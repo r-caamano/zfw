@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file. The format 
   the InternalInterfaces object.  These can be excluded since they are default and provided only for example purposes.
 - /opt/openziti/start_ebpf.py updated to parse new keys and implement new interface deployment logic.
 
+- Edited debug output in ingress/egress tc to better reflect data captured
+
 # [0.1.11] - 2023-05-17
 
 ###
