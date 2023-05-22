@@ -129,20 +129,20 @@ external and trusted.
 external inet <----> (ens33)[ebpf-router](ens37) <----> trusted clients
 
 with tproxy-splicer.o applied ingress on ens33 and oubound_track.o applied egress on ens33 the router will
-statefully track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
+statefuly track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
 running in this mode it does not make sense to add ziti tproxy rules and is meant for running as a traditional fw.
 As be for you can also create passthrough FW rules (set -t --tproxy-port to 0) which would also make sense in the mode for
-specific internet initiated traffic you might want to allow in.
+specific internet-initiated traffic you might want to allow in.
 
 TCP:
     If the tcp connections close gracefully then the entries will remove upon connection closure. 
-    if not then there is a 60 minute timeout that will remove the in active state if no traffic seen
+    if not, then there is a 60-minute timeout that will remove the in active state if no traffic seen
     in either direction.
 
 UDP:
     State will remain active as long as packets tuples matching SRCIP/SPORT/DSTIP/DPORT are seen in
     either direction within 30 seconds.  If no packets seen in either direction the state will expire.
-    If an external packet enters the interface after expire the entry will be deleted.  if an egress
+    If an external packet enters the interface after expiring the entry will be deleted.  if an egress
     packet fined a matching expired state it will return the state to active.
 
 In order to support this per interface rule awareness was added which allows each port range within a prefix
@@ -153,7 +153,7 @@ a per-prefix-rules setting in the following manner via the zfw utility
 #### Two Interface config with ens33 facing internet and ens37 facing local lan
 
 **Note: Operation in v0.1.12 is different from previous versions and requires that an interface is only configured as**
-**either Internal or External and should not be configured as both**
+ **either Internal or External and should not be configured as both.**
 ```
 sudo vi /opt/openziti/etc/ebpf_config.json
 ```
@@ -175,7 +175,7 @@ sudo vi /opt/openziti/etc/ebpf_config.json
 {"InternalInterfaces":[{"Name":"ens37","OutboundPassthroughTrack": true, PerInterfaceRules: false}],
  "ExternalInterfaces":[]}
 ```
-**Double check that your json formatting is correct since mistakes could render the firewall inoperable**
+**Double check that your json formatting is correct since mistakes could render the firewall inoperable.**
 
 After editing disable zfw and restart ziti-edge-wrapper service
 ```
@@ -188,7 +188,7 @@ sudo systemctl restart ziti-edge-wrapper.service
 ### Supporting Internal Containers / VMs
 
 Traffic from containers like docker appears just like passthrough traffic to ZFW so you configure it the same as described above for 
-normal external pass through traffic.
+normal external pass-through traffic.
 
 
 ### Manually Detaching from interface:
