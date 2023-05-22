@@ -694,8 +694,8 @@ int bpf_sk_splice(struct __sk_buff *skb){
        if(sk){
             if (sk->state != BPF_TCP_LISTEN){
                 if(local_diag->verbose){
-                    bpf_printk("ingress: tuple matched active host initiated tcp session - remote server: 0x%X :%d\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
-                    bpf_printk("response to host: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                    bpf_printk("ingress: tuple matched active host terminated tcp session - remote endpoint: 0x%X :%d\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                    bpf_printk("tx to host: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                 }
                 goto assign;
             }

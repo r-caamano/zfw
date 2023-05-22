@@ -2,16 +2,16 @@
 --- 
 This firewall applicaion utilizes both tc-ebpf and xdp to provide statefull firewalling
 for [openziti](https://docs.openziti.io/) ziti-edge-tunnel installation and is meant as a replacement for ufw at least for
-ingress filtering.  It can be used in conjuction with ufw's masquarade feature on a wan facing interface if
+ingress filtering.  It can be used in conjunction with ufw's masquerade feature on a wan facing interface if
 the zfw_outbound_track.o is activated in the egress direction. I can also be used in conjunction with openziti
-edge-routers deb package / manual instructions not yet available but comming soon.
+edge-routers deb package / manual instructions not yet available but coming soon.
 
 
 ## Build
 ---
 [To build zfw from source. Click here!](./BUILD.md)
 
-## Management After Deployment
+## Management After Deployment 
 ---
 
 The program is designed to be deployed as systemd services if deployed via .deb package with
@@ -22,7 +22,7 @@ an existing ziti-edge-tunnel(v21.0 +) on Ubuntu 22.04(amd64/arm64)service instal
 sudo dpkg -i zfw_<ver>_<arch>.deb
 ```
 
-files will be installed in the following directories
+files will be installed in the following directories.
 ```
 /etc/systemd/system <systemd service files>  
 /usr/sbin <symbolic link to zfw executable>
@@ -33,76 +33,93 @@ files will be installed in the following directories
 Configure:
 - Edit interfaces
 ```
-    sudo cp /opt/openziti/etc/ebpf_config.json.sample /opt/openziti/etc/ebpf_config.json
-    sudo vi /opt/openziti/etc/ebpf_config.json
+sudo cp /opt/openziti/etc/ebpf_config.json.sample /opt/openziti/etc/ebpf_config.json
+sudo vi /opt/openziti/etc/ebpf_config.json
 ```
-
-- Replace ens33 in line with:{"InternalInterfaces":[{"Name":"ens33"}]} 
-  Replace with interface that you want to enable for ingress firewalling/ openziti interception.
+- Adding interfaces
+  Replace ens33 in line with:{"InternalInterfaces":[{"Name":"ens33" ,"OutboundPassThroughTrack": false, "PerInterfaceRules": false}], "ExternalInterfaces":[]}
+  Replace with interface that you want to enable for ingress firewalling/ openziti interception and 
+  optionally ExternalInterfaces if running containers or other subtending devices (Described in more detail
+  later in this README.md).
 ```
 i.e. ens33
-    {"InternalInterfaces":[{"Name":"ens33"}]}
+    {"InternalInterfaces":[{"Name":"ens33"}], "ExternalInterfaces":[]}
 Note if you want to add more than one add to list
-    {"InternalInterfaces":[{"Name":"ens33"}, {"Name":"ens37"}]}
+    {"InternalInterfaces":[{"Name":"ens33"}, {"Name":"ens37"}], "ExternalInterfaces":[]}
 ```
 
 - Add user configured rules:
 ```
-   sudo cp /opt/openziti/bin/user/user_rules.sh.sample /opt/openziti/bin/user/user_rules.sh
-   sudo vi /opt/openziti/bin/user/user_rules.sh
+sudo cp /opt/openziti/bin/user/user_rules.sh.sample /opt/openziti/bin/user/user_rules.sh
+sudo vi /opt/openziti/bin/user/user_rules.sh
 ```   
 
 - Enable services:
 ```  
-    sudo systemctl enable ziti-fw-init.service
-    sudo systemctl enable ziti-wrapper.service 
-    sudo systemctl restart ziti-edge-tunnel 
+sudo systemctl enable ziti-fw-init.service
+sudo systemctl enable ziti-wrapper.service 
+sudo systemctl restart ziti-edge-tunnel.service 
 ```
 The Service will automatically configure ufw (if enabled) to hand off to ebpf on configured interface(s).  Exception is icmp
-which must be maually enabled if its been disabled in ufw.  also to allow icmp to ip of configured interface you would need to
-set icmp to enabled in the /opt/openziti/bin/user/user_rules.sh file i.e. sudo zfw -e ens33 and then restart ziti-wrapper.service. 
+which must be manually enabled if it's been disabled in ufw.  
 
-i.e. from above example ebpf_config zfw sets
-sudo ufw allow in on <ens33> to any
-Verify running
+/etc/ufw/before.rules:
 ```
-   sudo zfw -L
+-A ufw-before-input -p icmp --icmp-type echo-request -j ACCEPT
+```
+
+Also to allow icmp echos to reach the ip of attached interface you would need to
+set icmp to enabled in the /opt/openziti/bin/user/user_rules.sh file i.e. 
+```
+sudo zfw -e ens33 
+sudo systemctl restart ziti-wrapper.service 
+```
+
+Verify running:
+```
+sudo zfw -L
 ```
 output:
-   if running assuming using default address for ziti-edge-tunnel should see output like:
+```
+if running and assuming you are using the default address range for ziti-edge-tunnel should see output like:
 
 target  	proto	origin              destination             mapping:                				                interface list                 
 --------	-----	-----------------	------------------		-------------------------------------------------------	-----------------
 TUNMODE    	tcp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535     	TUNMODE redirect:tun0               []
 TUNMODE    	udp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535     	TUNMODE redirect:tun0               []
-
-verify running on the configured interface i.e.
+```
+Verify running on the configured interface i.e.
 ```
 sudo tc filter show dev ens33 ingress
+```   
+If running:
 ```
-expected output:
 filter protocol all pref 49152 bpf chain 0 
 filter protocol all pref 49152 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action] direct-action not_in_hw id 240 tag 689a7073bde6f9b0 jited
-<there will be no output if not running>
+```    
+If not running:
+```
+Not enough privilages or Ebpf not Enabled!
+Run as "sudo" with ingress tc filter [filter -X, --set-tc-filter] set on at least one interface
 
-Services configured via the openziti controller for ingress on the running ziti-edge-tunnel identities will auto populate into
-the firewalls inbound rule list.
+```
+    
+Services configured via the openziti controller for ingress on the running ziti-edge-tunnel identity will auto populate into
+the firewall's inbound rule list.
 
-also note xdp is enabled on the tunX interface that ziti-edge tunnel is attached to support functions like bi-directional 
-ip transparency which would otherwise not be possible without this fw/wrapper.
+Also note xdp is enabled on the tunX interface that ziti-edge tunnel is attached to support functions like bi-directional 
+ip transparency which would otherwise not be possible without this firewall/wrapper.
 
-you can check this as follows
-
-sudo ip link show dev tunX where X is the tun interface numbrer i.e. default tun0
-
+You can verify this as follows:
 ```
 sudo ip link show tun0
 ```
 expected output:
+```
 9: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 xdpgeneric qdisc fq_codel state UNKNOWN mode DEFAULT group default qlen 500
     link/none 
     prog/xdp id 249 tag 06c4719358c6de42 jited  <This line will be there if exp forwarder is running>
-
+```
 
 ### Outbound External passthrough traffic
 
@@ -112,130 +129,146 @@ external and trusted.
 external inet <----> (ens33)[ebpf-router](ens37) <----> trusted clients
 
 with tproxy-splicer.o applied ingress on ens33 and oubound_track.o applied egress on ens33 the router will
-statefully track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
+statefuly track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
 running in this mode it does not make sense to add ziti tproxy rules and is meant for running as a traditional fw.
 As be for you can also create passthrough FW rules (set -t --tproxy-port to 0) which would also make sense in the mode for
-specific internet initiated traffic you might want to allow in.
+specific internet-initiated traffic you might want to allow in.
 
 TCP:
     If the tcp connections close gracefully then the entries will remove upon connection closure. 
-    if not then there is a 60 minute timeout that will remove the in active state if no traffic seen
+    if not, then there is a 60-minute timeout that will remove the in active state if no traffic seen
     in either direction.
 
 UDP:
     State will remain active as long as packets tuples matching SRCIP/SPORT/DSTIP/DPORT are seen in
-    either direction within 30 seconds.  If no packets seen in either dorection the state will expire.
-    If an external packet enters the interface after expire the entry will be deleted.  if an egress
+    either direction within 30 seconds.  If no packets seen in either direction the state will expire.
+    If an external packet enters the interface after expiring the entry will be deleted.  if an egress
     packet fined a matching expired state it will return the state to active.
 
 In order to support this per interface rule awareness was added which allows each port range within a prefix
 to match a list of connected interfaces.  On a per interface basis you can decide to honor that list or not via
 a per-prefix-rules setting in the following manner via the zfw utility
 
-singly:
+
+#### Two Interface config with ens33 facing internet and ens37 facing local lan
+
+**Note: Operation in v0.1.12 is different from previous versions and requires that an interface is only configured as**
+ **either Internal or External and should not be configured as both.**
 ```
-sudo zfw -P <ifname>  <this would be set on the wan facing interface so that it would not have access to openziti services unless manully added >
-                        <To survive restart this would need to be added to the /opt/opnziti/user/user_rule.sh>
+sudo vi /opt/openziti/etc/ebpf_config.json
 ```
-or 
-
-all interfaces:
 ```
-sudo zfw -P all
+{"InternalInterfaces":[{"Name":"ens37","OutboundPassThroughTrack": false, PerInterfaceRules: false}],
+ "ExternalInterfaces":[{"Name":"ens33", OutboundPassThroughTrack: true, PerInterfaceRules: true}]}
 ```
-
-In order to assign 1 to 3 interfaces to a rule you would use the new -N option in combination with the -I i.e.
-to associate the rule to end37 and lo:
-
-```
-sudo zfw -I -c 172.16.31.0 -m 24 -l 443 -h 443 -t 44000 -p tcp -N ens37 -N lo
-```
-
-You will also need to enable outbound tracking on the external interface.  You can do so with the following:
-Assuming ens33 is your wan facing interface you 
-
-sudo vi /opt/openziti/etc/ebpf_config.yml
-
-add a new key ExternalInterfaces like this
-{"InternalInterfaces":[{"Name":"ens37"},{"Name":"ens33"}], "ExternalInterfaces":[{"Name":"ens33"}]}
-
 The above JSON sets up ens33 to be an internal interface (No outbound tracking) and ens33 as an external interface
-with outbound tracking.  It also automatically adds runs the sudo zfw -P ens33 so ens33 requires -N to add inbound
-rules to it and will ignore rules where it is not in the interface list
+with outbound tracking (Default for External Interface).  It also automatically adds runs the sudo zfw -P ens33 so ens33
+(default for ExternalInterfaces) which requires -N to add inbound rules to it and will ignore rules where it is not in the interface list.
+Keys "OutboundPassThroughTrack and PerInterfaceRules are shown with default values you only need to add them if you
+want change the default operation for the interface type.
 
-### Supporting Containers / VMs
+#### Single Interface config with ens33 facing lan local lan
+```
+sudo vi /opt/openziti/etc/ebpf_config.json
+```
+```
+{"InternalInterfaces":[{"Name":"ens37","OutboundPassthroughTrack": true, PerInterfaceRules: false}],
+ "ExternalInterfaces":[]}
+```
+**Double check that your json formatting is correct since mistakes could render the firewall inoperable.**
 
-In the case of containers(i.e Docker) the traffic will appear to the firewall as though its external passthrough
-traffic and not host initiated. In this case we again can use the "ExternalInterfaces":[{"Name":"ens33"}] key to track
-outbound container session.  Example single interface config with lan if ens33 and a cocker container running on the same
-vm/appiance as zfw.  
+After editing disable zfw and restart ziti-edge-wrapper service
+```
+sudo zfw -Q
+sudo /opt/openziti/bin/start_ebpf.py
+sudo systemctl restart ziti-edge-wrapper.service
 
-/opt/openziti/etc/ebpf_config.json :
-{"InternalInterfaces":[{"Name":"ens37"},{"Name":"ens33"}], "ExternalInterfaces":[{"Name":"ens33"}]}
+```
 
-Modifying -P state for the interface is optional but it allows for openziti interception inbound on the interface since the ExternalInterface
-operation defaults to -P, --per-interface-rules enabled which would mean interception rules would be ignored unless
-ens33 was in the interface list for that rule.  The current interface to ziti-edge-tunnel does not allow it to specify and interface
-so all auto-created rules have an empty interface list. 
+### Supporting Internal Containers / VMs
 
-/opt/openziti/bin/user/user_rules.sh
-sudo /opt/openziti/bin/zfw -P ens33 -d 
+Traffic from containers like docker appears just like passthrough traffic to ZFW so you configure it the same as described above for 
+normal external pass-through traffic.
 
-finally
-restart wrapper service
-sudo systemctl restart ziti-wrapper.service
 
-Thats it you are now able to track outbound connection states for internal containers and allow inbound traffic if connection
-was initiated by the internal container.
-    
 ### Manually Detaching from interface:
 
 ```bash
 sudo zfw --set-tc-filter <interface name>  --direction <ingress | egress> --disable
 ```
 
+### Upgrading
+```
+sudo systemctl stop ziti-wrapper.service
+sudo dpkg -i <zfw_<ver>_<arch>.deb
+```
+After updating reboot the system (preferred method) 
+```
+sudo reboot
+```
+
+or 
+
+
+```
+sudo zfw -Q
+sudo systemctl restart ziti-edge-tunnel.service
+```
+
 ## Ebpf Map User Space Management
 ---
-- User space maual cofiguration
-  ziti-edge tunnel will automatically populate rules for configured ziti services so the following is if
-  you want to configure additional rules outside of the automated ones.
+### User space manual configuration
+ziti-edge tunnel will automatically populate rules for configured ziti services so the following is if
+you want to configure additional rules outside of the automated ones.
 
-  All commands listed in this section would need to be put in /opt/openziti/bin/user/user_rules.sh
-  to survive reboot.
+All commands listed in this section would need to be put in /opt/openziti/bin/user/user_rules.sh
+to survive reboot.
 
-- ssh default operation
-    By default ssh is enabled to the ip address of the attached interface from any source.
-    The following command will disable default ssh action to pass to ip of local interface and then
-    fall through to rule check instead where a more specific rule could be applied.  This is a per
-    interface setting and can be set for all interfaces except loopback.  This would need to be put in
-    /opt/openziti/bin/user/user_rules.sh to survive reboot.
-
-Usage: zfw -x <interface-name> | all
+### ssh default operation
+By default ssh is enabled to pass through to the ip address of the attached interface from any source.
+The following command will disable default ssh action to pass to ip of local interface and then
+fall through to rule check instead where a more specific rule could be applied.  This is a per
+interface setting and can be set for all interfaces except loopback.  This would need to be put in
+ /opt/openziti/bin/user/user_rules.sh to survive reboot.
 
 ```
 sudo zfw -x ens33
 ```
 
+### Inserting /Deleting rules
+    
 The -t, --tproxy-port is has a dual purpose one it to signify the tproxy port used by openziti routers in tproxy mode and the other is to
 identify either local passthrough with value of 0 and the other is tunnel redirect mode with value of 65535.
 
-- Example 
-If you disable default ssh ahndling and assuming device interface ip is 172.16.240.1 and you want to insert map entry to with source 
-filtering to only allow rule for ip source ip 10.1.1.1/32 to reach 172.16.240.1. Notice -t 0 this means
-it drops to local OS stack not redirected to tproxy or tunnel.
+- Example Insert
+If you disable default ssh handling with a device interface ip of 172.16.240.1 and you want to insert a user rule with source 
+filtering that only allows source ip 10.1.1.1/32 to reach 172.16.240.1:22. 
 
-Usage: zfw -I -c <ip dest address or prefix> -m <dest prefix len> -o <origin address or prefix> -n <origin prefix len> -l <low_port> -h <high_port> -t <tproxy_port> -p <protocol>
-
+Particularly notice -t 0 which means that matched packets will pass to the local OS stack and are not redirected to tproxy ports or tunnel interface.
 ```
 sudo zfw -I -c 172.16.240.1 -m 32 -o 10.1.1.1 -n 32  -p tcp -l 22 -h 22 -t 0
+```
+    
+- Example Delete
+    
+```
+sudo zfw -D -c 172.16.240.1 -m 32 -o 10.1.1.1 -n 32  -p tcp -l 22
+```
+
+- Example: Remove all rule entries from FW
+
+```
+sudo zfw -F
 ```
 
 Example: Monitor ebpf trace messages
 
 ```
-sudo zfw -v all
+sudo zfw -v <ifname>|all
 sudo cat /sys/kernel/debug/tracing/trace_pipe
+```
   
+```
 <idle>-0       [007] dNs.. 167940.070727: bpf_trace_printk: ens33
 <idle>-0       [007] dNs.. 167940.070728: bpf_trace_printk: source_ip = 0xA010101
 <idle>-0       [007] dNs.. 167940.070728: bpf_trace_printk: dest_ip = 0xAC10F001
@@ -247,134 +280,116 @@ sudo cat /sys/kernel/debug/tracing/trace_pipe
 <idle>-0       [007] dNs.. 167954.255415: bpf_trace_printk: dest_ip = 0xAC10F001
 <idle>-0       [007] dNs.. 167954.255415: bpf_trace_printk: protocol_id = 6
 <idle>-0       [007] dNs.. 167954.255416: bpf_trace_printk: tproxy_mapping->22 to 39839
-
-```
-Example: Remove previous entry from map
-
-
-Usage: zfw -D -c <ip dest address or prefix> -m <prefix len> -l <low_port> -p <protocol>
-
-```
-sudo zfw -D -c 172.16.240.1 -m 32 -l 5060 -p udp
 ```
 
-Example: Remove all rule entries from FW
-
-Usage: zfw -F
-
-```
-sudo zfw -F
-```
-
-Example: List all rules in map
-
-Usage: zfw -L
+Example: List all rules in Firewall
 
 ```
 sudo zfw -L
 ```
+```
+target     proto    origin              destination               mapping:                                                   interface list
+------     -----    ---------------     ------------------        --------------------------------------------------------- ----------------
+TPROXY     tcp      0.0.0.0/0           10.0.0.16/28              dpts=22:22                TPROXY redirect 127.0.0.1:33381  [ens33,lo]
+TPROXY     tcp      0.0.0.0/0           10.0.0.16/28              dpts=30000:40000          TPROXY redirect 127.0.0.1:33381  []
+TPROXY     udp      0.0.0.0/0           172.20.1.0/24             dpts=5000:10000           TPROXY redirect 127.0.0.1:59394  []
+TPROXY     tcp      0.0.0.0/0           172.16.1.0/24             dpts=22:22                TPROXY redirect 127.0.0.1:33381  []
+TPROXY     tcp      0.0.0.0/0           172.16.1.0/24             dpts=30000:40000          TPROXY redirect 127.0.0.1:33381  []
+PASSTHRU   udp      0.0.0.0/0           192.168.3.0/24            dpts=5:7                  PASSTHRU to 192.168.3.0/24       []
+PASSTHRU   udp      10.1.1.1/32         192.168.100.100/32        dpts=50000:60000          PASSTHRU to 192.168.100.100/32   []
+PASSTHRU   tcp      10.230.40.1/32      192.168.100.100/32        dpts=60000:65535          PASSTHRU to 192.168.100.100/32   []
+TPROXY     udp      0.0.0.0/0           192.168.0.3/32            dpts=5000:10000           TPROXY redirect 127.0.0.1:59394  []
+PASSTHRU   tcp      0.0.0.0/0           192.168.100.100/32        dpts=60000:65535          PASSTHRU to 192.168.100.100/32   []
+TUNMODE    udp	    0.0.0.0/0           100.64.0.0/10             dpts=1:65535     	        TUNMODE redirect:tun0            []
+```
+    
+- Example: List rules in firewall for a given prefix and protocol.  If source specific you must include the o 
+  <origin address or prefix> -n <origin prefix len>
 
-    target     proto    origin              destination               mapping:                                                   interface list
-    ------     -----    ---------------     ------------------        --------------------------------------------------------- ----------------
-    TPROXY     tcp      0.0.0.0/0           10.0.0.16/28              dpts=22:22                TPROXY redirect 127.0.0.1:33381  [ens33,lo]
-    TPROXY     tcp      0.0.0.0/0           10.0.0.16/28              dpts=30000:40000          TPROXY redirect 127.0.0.1:33381  []
-    TPROXY     udp      0.0.0.0/0           172.20.1.0/24             dpts=5000:10000           TPROXY redirect 127.0.0.1:59394  []
-    TPROXY     tcp      0.0.0.0/0           172.16.1.0/24             dpts=22:22                TPROXY redirect 127.0.0.1:33381  []
-    TPROXY     tcp      0.0.0.0/0           172.16.1.0/24             dpts=30000:40000          TPROXY redirect 127.0.0.1:33381  []
-    PASSTHRU   udp      0.0.0.0/0           192.168.3.0/24            dpts=5:7                  PASSTHRU to 192.168.3.0/24       []
-    PASSTHRU   udp      10.1.1.1/32         192.168.100.100/32        dpts=50000:60000          PASSTHRU to 192.168.100.100/32   []
-    PASSTHRU   tcp      10.230.40.1/32      192.168.100.100/32        dpts=60000:65535          PASSTHRU to 192.168.100.100/32   []
-    TPROXY     udp      0.0.0.0/0           192.168.0.3/32            dpts=5000:10000           TPROXY redirect 127.0.0.1:59394  []
-    PASSTHRU   tcp      0.0.0.0/0           192.168.100.100/32        dpts=60000:65535          PASSTHRU to 192.168.100.100/32   []
-    TUNMODE    udp	    0.0.0.0/0           100.64.0.0/10             dpts=1:65535     	        TUNMODE redirect:tun0            []
-
-Example: List rules in map for a given prefix and protocol
-Usage: zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
 ```  
 sudo zfw -L -c 192.168.100.100 -m 32 -p udp
 ```
-  
+```  
 target     proto    origin           destination              mapping:                                                  interface list
 ------     -----    --------         ------------------       --------------------------------------------------------- ------------------    
 PASSTHRU   udp      0.0.0.0/0        192.168.100.100/32       dpts=50000:60000 	      PASSTHRU to 192.168.100.100/32     []
+```
 
-
-Example: List rules in map for a given prefix
+Example: List rules in firewall for a given prefix
 Usage: zfw -L -c <ip dest address or prefix> -m <prefix len> -p <protocol>
 ```
 sudo zfw -L -c 192.168.100.100 -m 32
 ```
-
+```
 target     proto    origin           destination              mapping:                                                  interface list
 ------     -----    --------         ------------------       --------------------------------------------------------- -------------------
 PASSTHRU   udp      0.0.0.0/0        192.168.100.100/32       dpts=50000:60000 	      PASSTHRU to 192.168.100.100/32     []
 PASSTHRU   tcp      0.0.0.0/0        192.168.100.100/32       dpts=60000:65535	      PASSTHRU to 192.168.100.100/32     []
-
+```
 Example: List all interface settings
 
-Usage: zfw -L -E
 ```
 sudo zfw -L -E
 ```
+```
+lo: 1
+--------------------------
+icmp echo               :1
+verbose                 :0
+ssh disable             :0
+per interface           :0
+tc ingress filter       :1
+tc egress filter        :0
+tun mode intercept      :0
+--------------------------
 
-    lo: 1
-    --------------------------
-    icmp echo               :1
-    verbose                 :0
-    ssh disable             :0
-    per interface           :0
-    tc ingress filter       :1
-    tc egress filter        :0
-    tun mode intercept      :0
-    --------------------------
+ens33: 3
+--------------------------
+icmp echo               :0
+verbose                 :1
+ssh disable             :1
+per interface           :1
+tc ingress filter       :1
+tc egress filter        :1
+tun mode intercept      :0
+--------------------------
 
-    ens33: 3
-    --------------------------
-    icmp echo               :0
-    verbose                 :1
-    ssh disable             :1
-    per interface           :1
-    tc ingress filter       :1
-    tc egress filter        :1
-    tun mode intercept      :0
-    --------------------------
+ens37: 4
+--------------------------
+icmp echo               :0
+verbose                 :0
+ssh disable             :0
+per interface           :0
+tc ingress filter       :1
+tc egress filter        :0
+tun mode intercept      :0
+--------------------------
 
-    ens37: 4
-    --------------------------
-    icmp echo               :0
-    verbose                 :0
-    ssh disable             :0
-    per interface           :0
-    tc ingress filter       :1
-    tc egress filter        :0
-    tun mode intercept      :0
-    --------------------------
-
-    tun0: 9
-    --------------------------
-    verbose                 :0
-    cidr                    :100.64.0.0
-    mask                    :10
-    --------------------------
-
+tun0: 9
+--------------------------
+verbose                 :0
+cidr                    :100.64.0.0
+mask                    :10
+--------------------------
+```
+      
 Example: Remove all tc-ebpf on router
 
-Usage: zfw -Q,--disable-ebpf
 ```
 sudo zfw --disable-ebpf
 ```
-    tc parent del : lo
-    tc parent del : ens33
-    tc parent del : ens37
-    removing /sys/fs/bpf/tc/globals/zt_tproxy_map
-    removing /sys/fs/bpf/tc/globals/diag_map
-    removing /sys/fs/bpf/tc/globals/ifindex_ip_map
-    removing /sys/fs/bpf/tc/globals/tuple_count_map
-    removing /sys/fs/bpf/tc/globals/prog_map
-    removing /sys/fs/bpf/tc/globals/udp_map
-    removing /sys/fs/bpf/tc//globals/matched_map
-    removing /sys/fs/bpf/tc/globals/tcp_map
-
-
+```
+tc parent del : lo
+tc parent del : ens33
+tc parent del : ens37
+removing /sys/fs/bpf/tc/globals/zt_tproxy_map
+removing /sys/fs/bpf/tc/globals/diag_map
+removing /sys/fs/bpf/tc/globals/ifindex_ip_map
+removing /sys/fs/bpf/tc/globals/tuple_count_map
+removing /sys/fs/bpf/tc/globals/prog_map
+removing /sys/fs/bpf/tc/globals/udp_map
+removing /sys/fs/bpf/tc//globals/matched_map
+removing /sys/fs/bpf/tc/globals/tcp_map
+```
 ### Openziti router setup:
 -coming soon
