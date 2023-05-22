@@ -1,6 +1,6 @@
 ## Introduction
 --- 
-This firewall application utilizes both tc-ebpf and xdp to provide statefull firewalling
+This firewall application utilizes both tc-ebpf and xdp to provide stateful firewalling
 for [openziti](https://docs.openziti.io/) ziti-edge-tunnel installation and is meant as a replacement for ufw at least for
 ingress filtering.  It can be used in conjunction with ufw's masquerade feature on a wan facing interface if
 the zfw_outbound_track.o is activated in the egress direction. I can also be used in conjunction with openziti
@@ -99,7 +99,7 @@ filter protocol all pref 49152 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action] 
 ```    
 If not running:
 ```
-Not enough privilages or Ebpf not Enabled!
+Not enough privileges or Ebpf not Enabled!
 Run as "sudo" with ingress tc filter [filter -X, --set-tc-filter] set on at least one interface
 
 ```
@@ -128,8 +128,8 @@ external and trusted.
 
 external inet <----> (ens33)[ebpf-router](ens37) <----> trusted clients
 
-with tproxy-splicer.o applied ingress on ens33 and oubound_track.o applied egress on ens33 the router will
-statefuly track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
+with zfw_tc_ingress.o applied ingress on ens33 and zfw_tc_oubound_track.o applied egress on ens33 the router will
+statefully track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
 running in this mode it does not make sense to add ziti tproxy rules and is meant for running as a traditional fw.
 As be for you can also create passthrough FW rules (set -t --tproxy-port to 0) which would also make sense in the mode for
 specific internet-initiated traffic you might want to allow in.
