@@ -112,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.12";
+const char *argp_program_version = "0.1.13";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -181,7 +181,7 @@ void ebpf_usage()
 {
     if (access(tproxy_map_path, F_OK) != 0)
     {
-        printf("Not enough privilages or Ebpf not Enabled!\n"); 
+        printf("Not enough privileges or Ebpf not enabled!\n"); 
         printf("Run as \"sudo\" with ingress tc filter [filter -X, --set-tc-filter] set on at least one interface\n");
         close_maps(1);
     }
