@@ -99,7 +99,7 @@ filter protocol all pref 49152 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action] 
 ```    
 If not running:
 ```
-Not enough privileges or Ebpf not Enabled!
+Not enough privileges or ebpf not enabled!
 Run as "sudo" with ingress tc filter [filter -X, --set-tc-filter] set on at least one interface
 
 ```
