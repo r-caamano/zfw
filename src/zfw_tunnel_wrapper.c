@@ -122,7 +122,7 @@ void ebpf_usage()
 {
     if (access(transp_map_path, F_OK) != 0)
     {
-        printf("Not enough privileges or Ebpf not Enabled!\n"); 
+        printf("Not enough privileges or ebpf not enabled!\n"); 
         printf("Run as \"sudo\" with ingress tc filter [filter -X, --set-tc-filter] set on at least one interface\n");
         close_maps(1);
     }
