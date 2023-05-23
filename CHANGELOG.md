@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.1.14] - 2023-05-23
+
+###
+
+- Major operational change.  Fixed issue where ziti-edge-tunnel would not bind to egress allows source 
+  ip unless there was an exact /32 match.  Now binding is possible with a subnet level match.  This is
+  a significant improvement as now allowed sources do not have to be host level entries. In order to 
+  achieve this the link scoped route to tuX created by ZET for interception is deleted by the wrapper and a
+  local ip route is added to lo in its place.  This is made possible by the tc-ebpf-redirect which negates
+  the need for the link scoped route. **After update a system reboot should be performed** 
+
+- General code cleanup 
+
 # [0.1.13] - 2023-05-21
 
 ###
@@ -13,8 +26,8 @@ All notable changes to this project will be documented in this file. The format 
 
 ###
 
-- Changed interface ebpf settings assignement which may require alteration of existing config if setup for exteral
-  outboundd tracking.   
+- Changed interface ebpf settings assignment which may require alteration of existing config if setup for exteral
+  outbound tracking.   
 
   Added keys to /opt/openziti/etc/ebpf_config.json
    - PerInterfaceRules - sets state of per interface rules awareness.
@@ -34,7 +47,7 @@ All notable changes to this project will be documented in this file. The format 
 
 ###
 
-- Fixed Usage: output inconsistensies
+- Fixed Usage: output inconsistencies
 - Added hyperlink to https://docs.openziti.io/
 - Added debug output in both ingress and egress for traffic that matches
   host initiated connections
@@ -66,15 +79,15 @@ All notable changes to this project will be documented in this file. The format 
 - Added input validation to all interface related commands.  If non existent name is given "Interface not 
   found: <ifname> will be output.
 - Fixed output of zfw -L -i
-- Added README.md section for containers, fixed some inconsistensies  
+- Added README.md section for containers, fixed some inconsistencies  
 
 # [0.1.7] - 2023-05-17
 
 ###
 
-- Fixed input validation to regect any tc filter commands with out -z, --direction specified
+- Fixed input validation to reject any tc filter commands with out -z, --direction specified
 - Added enhanced output for outbound tracking 
-- Modified tcp state map to have separate fin state for client and server to more accuratly
+- Modified tcp state map to have separate fin state for client and server to more accurately
   identify tcp session close.
 - Edits to readme removed ./ and repeated sudo
 
@@ -85,7 +98,7 @@ All notable changes to this project will be documented in this file. The format 
 -Fixed start_ebpf.py syntax error printf() and should have been print() and removed sys.exit(1) on zfw -Q fail.
 -Fixed README.md inconsistencies/errors.
 -Fixed zfw -Q not displaying sudo permissions requirement when operated as a non privileged user.
--Modified Maximums entries for mutiple maps, this included a changed for MAX_BPF_ENTRIES which
+-Modified Maximums entries for multiple maps, this included a changed for MAX_BPF_ENTRIES which
  is settable at compile time and reflected in release.yml/ci.yml workload.
  
 # [0.1.5] - 2023-05-16
@@ -100,13 +113,13 @@ All notable changes to this project will be documented in this file. The format 
 
 ###
 
-- Refactored release.yml to replace depricated actions.
+- Refactored release.yml to replace deprecated actions.
 
 # [0.1.3] - 2023-05-15
 
 ###
 
-- Added abilitiy to override automated settings in start_ebpf.sh by moving user_rules.sh read to last item in script
+- Added ability to override automated settings in start_ebpf.sh by moving user_rules.sh read to last item in script
 
 ## [0.1.2] - 2023-05-15
 
@@ -122,7 +135,7 @@ All notable changes to this project will be documented in this file. The format 
 - Added README.md
 - Added BUILD.md
 - Modified json object in files/json/ebpf_config.json and modified files/scripts/start_ebpf.py to parse it for new key "ExternalInterfaces" which
-  gives the abilty to assign an outbound tracking object and set per interface rules on a wan interface as described in README.md
+  gives the ability to assign an outbound tracking object and set per interface rules on a wan interface as described in README.md
 - Fixed memory leak caused b y not calling json_object_put() on the root json objects created by calls to json _token_parse(). 
 
 ## [0.1.0] - 2023-05-12

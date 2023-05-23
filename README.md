@@ -1,4 +1,5 @@
-## Introduction
+# Introduction
+
 --- 
 This firewall application utilizes both tc-ebpf and xdp to provide stateful firewalling
 for [openziti](https://docs.openziti.io/) ziti-edge-tunnel installation and is meant as a replacement for ufw at least for
@@ -8,11 +9,10 @@ edge-routers deb package / manual instructions not yet available but coming soon
 
 
 ## Build
----
+
 [To build zfw from source. Click here!](./BUILD.md)
 
 ## Management After Deployment 
----
 
 The program is designed to be deployed as systemd services if deployed via .deb package with
 an existing ziti-edge-tunnel(v21.0 +) on Ubuntu 22.04(amd64/arm64)service installation.  
@@ -38,7 +38,7 @@ sudo vi /opt/openziti/etc/ebpf_config.json
 ```
 - Adding interfaces
   Replace ens33 in line with:{"InternalInterfaces":[{"Name":"ens33" ,"OutboundPassThroughTrack": false, "PerInterfaceRules": false}], "ExternalInterfaces":[]}
-  Replace with interface that you want to enable for ingress firewalling/ openziti interception and 
+  Replace with interface that you want to enable for ingress firewalling / openziti interception and 
   optionally ExternalInterfaces if running containers or other subtending devices (Described in more detail
   later in this README.md).
 ```
@@ -81,6 +81,7 @@ sudo zfw -L
 ```
 output:
 ```
+
 if running and assuming you are using the default address range for ziti-edge-tunnel should see output like:
 
 target  	proto	origin              destination             mapping:                				                interface list                 

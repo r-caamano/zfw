@@ -48,6 +48,7 @@ const char *if_tun_map_path = "/sys/fs/bpf/tc/globals/ifindex_tun_map";
 int ctrl_socket, event_socket;
 char tunip_string[16]="";
 char tunip_mask_string[10]="";
+char *tun_ifname;
 union bpf_attr transp_map;
 int transp_fd = -1;
 union bpf_attr tun_map;
@@ -56,7 +57,6 @@ typedef unsigned char byte;
 void close_maps(int code);
 void open_transp_map();
 void open_tun_map();
-void unbind_prefix(struct in_addr *address, unsigned short mask);
 void zfw_update(char *ip, char *mask, char *lowport, char *highport, char *protocol, char *action);
 void INThandler(int sig);
 
@@ -199,14 +199,14 @@ __u16 len2u16(char *len)
     return u16int;
 }
 
-void bind_prefix(struct in_addr *address, unsigned short mask)
+void bind_route(struct in_addr *address, unsigned short mask)
 {
     char *prefix = inet_ntoa(*address);
     char *cidr_block = malloc(19);
     sprintf(cidr_block, "%s/%u", prefix, mask);
-    printf("binding source ip %s to loopback\n", cidr_block);
+    printf("binding local ip route to %s via loopback\n", cidr_block);
     pid_t pid;
-    char *const parmList[] = {"/usr/sbin/ip", "addr", "add", cidr_block, "dev", "lo", "scope", "host", NULL};
+    char *const parmList[] = {"/usr/sbin/ip", "route", "add", "local", cidr_block, "dev", "lo", NULL};
     if ((pid = fork()) == -1)
     {
         perror("fork error: can't spawn bind");
@@ -214,19 +214,19 @@ void bind_prefix(struct in_addr *address, unsigned short mask)
     else if (pid == 0)
     {
         execv("/usr/sbin/ip", parmList);
-        printf("execv error: unknown error binding");
+        printf("execv error: unknown error binding route");
     }
     free(cidr_block);
 }
 
-void unbind_prefix(struct in_addr *address, unsigned short mask)
+void unbind_route_loopback(struct in_addr *address, unsigned short mask)
 {
     char *prefix = inet_ntoa(*address);
     char *cidr_block = malloc(19);
     sprintf(cidr_block, "%s/%u", prefix, mask);
-    printf("unbinding source ip %s from loopback\n", cidr_block);
+    printf("unbinding route to %s via dev %s\n", cidr_block, "lo");
     pid_t pid;
-    char *const parmList[] = {"/usr/sbin/ip", "addr", "delete", cidr_block, "dev", "lo", "scope", "host", NULL};
+    char *const parmList[] = {"/usr/sbin/ip", "route", "del", "local", cidr_block, "dev", "lo", NULL};
     if ((pid = fork()) == -1)
     {
         perror("fork error: can't spawn unbind");
@@ -234,7 +234,27 @@ void unbind_prefix(struct in_addr *address, unsigned short mask)
     else if (pid == 0)
     {
         execv("/usr/sbin/ip", parmList);
-        printf("execv error: unknown error unbinding");
+        printf("execv error: unknown error unbinding route");
+    }
+    free(cidr_block);
+}
+
+void unbind_route(struct in_addr *address, unsigned short mask, char *dev)
+{
+    char *prefix = inet_ntoa(*address);
+    char *cidr_block = malloc(19);
+    sprintf(cidr_block, "%s/%u", prefix, mask);
+    printf("unbinding route to %s via dev %s\n", cidr_block, dev);
+    pid_t pid;
+    char *const parmList[] = {"/usr/sbin/ip", "route", "del", cidr_block, "dev", dev, NULL};
+    if ((pid = fork()) == -1)
+    {
+        perror("fork error: can't spawn unbind");
+    }
+    else if (pid == 0)
+    {
+        execv("/usr/sbin/ip", parmList);
+        printf("execv error: unknown error unbinding route");
     }
     free(cidr_block);
 }
@@ -288,7 +308,7 @@ void string2Byte(char* string, byte* bytes)
 void zfw_update(char *ip, char *mask, char *lowport, char *highport, char *protocol, char *action){
     if (access("/usr/sbin/zfw", F_OK) != 0)
     {
-        printf("Ebpf not running: Cannot find /usr/sbin/zfw\n");
+        printf("ebpf not running: Cannot find /usr/sbin/zfw\n");
         return;
     }
     pid_t pid;
@@ -409,7 +429,7 @@ int readfile(char *filename){
                                     struct in_addr tuncidr;
                                     if (inet_aton(dest, &tuncidr))
                                     {
-                                        bind_prefix(&tuncidr, len2u16(mask));
+                                        bind_route(&tuncidr, len2u16(mask));
                                         if (allowedSourceAddresses_len < MAX_TRANSP_ROUTES)
                                         {
                                             struct transp_key key = {{0}};
@@ -480,7 +500,7 @@ int process_bind(char *service_id){
     if (!lookup)
     {
         for(int x = 0; x <= o_routes.count; x++){
-            unbind_prefix(&o_routes.tentry[x].saddr, o_routes.tentry[x].prefix_len);
+            unbind_route_loopback(&o_routes.tentry[x].saddr, o_routes.tentry[x].prefix_len);
         }
         map_delete_key(service_id);
     }
@@ -575,7 +595,11 @@ int process_dial(json_object *jobj, char *action){
                                                     printf("Service_IP=%s\n", ip);
                                                     printf("Protocol=%s\n", protocol);
                                                     printf("Low=%s\n", lowport); 
-                                                    printf("high=%s\n\n", highport);   
+                                                    printf("high=%s\n\n", highport);
+                                                    struct in_addr tuncidr;
+                                                    if (inet_aton(ip, &tuncidr) && tun_ifname){
+                                                        unbind_route(&tuncidr, len2u16(mask), tun_ifname);
+                                                    }   
                                                     zfw_update(ip, mask, lowport, highport, protocol, action);
                                                 }  
                                             }
@@ -630,7 +654,7 @@ void scrape_identity_log(struct json_object *ident_obj){
         if(name_obj){
             char identity[strlen(json_object_get_string(name_obj) + 1)];
             sprintf(identity, "%s", json_object_get_string(name_obj));
-            printf("Scrapeing log file for id:%s\n", identity);
+            printf("Scraping log file for id:%s\n", identity);
             char ident_dump_file[strlen(identity) + 6];
             sprintf(ident_dump_file, "%s.ziti", identity);
             char symlink[strlen(ident_dump_file) + 6];
@@ -801,6 +825,7 @@ int run(){
                                 sprintf(tunip_mask_string, "%s", o_tunif.mask);
                                 zfw_update(tunip_string, tunip_mask_string, "1", "65535", "tcp", "-I");
                                 zfw_update(tunip_string, tunip_mask_string, "1", "65535", "udp", "-I");
+                                tun_ifname = o_tunif.ifname;
                             }
                         }
                         struct json_object *identities_obj = json_object_object_get(status_obj, "Identities");
