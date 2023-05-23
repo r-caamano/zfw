@@ -137,7 +137,7 @@ static inline struct diag_ip4 *get_diag_ip4(__u32 key){
 }
 
 
-/* function to determine if an incomming packet is a udp/tcp IP tuple
+/* function to determine if an incoming packet is a udp/tcp IP tuple
 * or not.  If not returns NULL.  If true returns a struct bpf_sock_tuple
 * from the combined IP SA|DA and the TCP/UDP SP|DP. 
 */
@@ -231,7 +231,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
             return TC_ACT_SHOT;
 	}
 
-    /* check if incomming packet is a UDP or TCP tuple */
+    /* check if incoming packet is a UDP or TCP tuple */
     tuple = get_tuple(skb, sizeof(*eth), eth->h_proto, &ipv4,&ipv6, &udp, &tcp, &arp, &icmp, local_diag);
 
     /* if not tuple forward */
@@ -239,13 +239,13 @@ int bpf_sk_splice(struct __sk_buff *skb){
         return TC_ACT_OK;
     }
 
-    /* determine length of tupple */
+    /* determine length of tuple */
     tuple_len = sizeof(tuple->ipv4);
     if ((unsigned long)tuple + tuple_len > (unsigned long)skb->data_end){
        return TC_ACT_SHOT;
     }
 
-    /* if tcp based tuple implement statefull inspection to see if they were
+    /* if tcp based tuple implement stateful inspection to see if they were
      * initiated by the local OS if not then its passthrough traffic and so wee need to
      * setup our own state to track the outbound pass through connections in via shared hashmap
     * with with ingress tc program*/
@@ -267,7 +267,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
             if (sk->state != BPF_TCP_LISTEN){
                 bpf_sk_release(sk);
                 if(local_diag->verbose){
-                    bpf_printk("engress: tuple matched active host terminated tcp session - host: 0x%X :%d\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                    bpf_printk("egress: tuple matched active host terminated tcp session - host: 0x%X :%d\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
                     bpf_printk("tx to remote endpoint: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                 }
                 return TC_ACT_OK;
@@ -312,13 +312,13 @@ int bpf_sk_splice(struct __sk_buff *skb){
             if(tstate){
                 del_tcp(tcp_state_key);
                 if(local_diag->verbose){
-                    bpf_printk("egress: recieved rst from client: 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                    bpf_printk("egress: received rst from client: 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
                     bpf_printk("forwarded rst to server: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                 }
                 tstate = get_tcp(tcp_state_key);
                 if(!tstate){
                     if(local_diag->verbose){
-                        bpf_printk("egress: removed state esablished by client: 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                        bpf_printk("egress: removed state established by client: 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
                         bpf_printk("to server: %X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                     }
                 }
@@ -345,7 +345,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
                     tstate = get_tcp(tcp_state_key);
                     if(!tstate){
                         if(local_diag->verbose){
-                            bpf_printk("removed state esablished by client: 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                            bpf_printk("removed state established by client: 0x%X: %d\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
                             bpf_printk("to server: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport ));
                         }
                     }
@@ -357,7 +357,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
             }
         }
     }else{
-    /* if udp based tuple implement statefull inspection to see if they were
+    /* if udp based tuple implement stateful inspection to see if they were
      * initiated by the local OS if not then its passthrough traffic and so wee need to
      * setup our own state to track the outbound pass through connections in via shared hashmap
     * with with ingress tc program */

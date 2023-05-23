@@ -112,7 +112,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.13";
+const char *argp_program_version = "0.1.14";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -188,7 +188,7 @@ void ebpf_usage()
 }
 
 /*function to add loopback binding for intercept IP prefixes that do not
- * currentlt exist as a subset of an external interface
+ * currently exist as a subset of an external interface
  * */
 void bind_prefix(struct in_addr *address, unsigned short mask)
 {

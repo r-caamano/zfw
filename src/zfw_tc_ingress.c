@@ -71,7 +71,7 @@ struct tproxy_tuple {
     __u16 index_len; /*tracks the number of entries in the index_table*/
     __u16 index_table[MAX_INDEX_ENTRIES];/*Array used as index table which point to struct 
                                              *tproxy_port_mapping in the port_maping array
-                                             * with each poulated index represening a udp or tcp tproxy 
+                                             * with each populated index representing a udp or tcp tproxy 
                                              * mapping in the port_mapping array
                                              */
     struct tproxy_port_mapping port_mapping[MAX_TABLE_SIZE];/*Array to store unique tproxy mappings
@@ -206,9 +206,9 @@ struct bpf_elf_map SEC("maps") prog_map = {
 	.max_elem	= 10,
 };
 
-/*map to track up to 3 key matches per incomming packet search.  Map is 
+/*map to track up to 3 key matches per incoming packet search.  Map is 
 then used to search for port mappings.  This was required when source filtering was 
-added to accommodate the additional intructions per ebpf program.  The search now spans
+added to accommodate the additional instructions per ebpf program.  The search now spans
 5 ebpf programs  */
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -221,9 +221,9 @@ struct {
 
 /* File system pinned Array Map key mapping to ifindex with used to allow 
  * ebpf program to learn the ip address
- * of the interface it is attched to by reading the mapping
- * provided by user space it can use skb->ingre __uint(key_size, sizeof(uint32_t));ss_ifindex
- * to find its cooresponding ip address. Currently used to limit
+ * of the interface it is attached to by reading the mapping
+ * provided by user space it can use skb->ifindex __uint(key_size, sizeof(uint32_t));ss_ifindex
+ * to find its corresponding ip address. Currently used to limit
  * ssh to only the attached interface ip 
 */
 struct {
@@ -372,8 +372,8 @@ static inline struct ifindex_tun *get_tun_index(uint32_t key){
 }
 
 /* Function used by ebpf program to access ifindex_ip_map
- * inroder to lookup the ip associed with its attached interface
- * This allows distiguishing between socket to the local system i.e. ssh
+ * in order to lookup the ip associated with its attached interface
+ * This allows distinguishing between socket to the local system i.e. ssh
  *  vs socket that need to be forwarded to the tproxy splicing function
  * 
  */
@@ -430,7 +430,7 @@ static inline void clear_match_tracker(__u32 key){
     bpf_map_update_elem(&matched_map, &key, &mt,0);
 }
 
-/* function to determine if an incomming packet is a udp/tcp IP tuple
+/* function to determine if an incoming packet is a udp/tcp IP tuple
 * or not.  If not returns NULL.  If true returns a struct bpf_sock_tuple
 * from the combined IP SA|DA and the TCP/UDP SP|DP. 
 */
@@ -475,7 +475,7 @@ static struct bpf_sock_tuple *get_tuple(struct __sk_buff *skb, __u64 nh_off,
         proto = iph->protocol;
         /* check if ip protocol is UDP */
         if (proto == IPPROTO_UDP) {
-            /* check outter ip header */
+            /* check outer ip header */
             struct udphdr *udph = (struct udphdr *)(skb->data + nh_off + sizeof(struct iphdr));
             if ((unsigned long)(udph + 1) > (unsigned long)skb->data_end){
                 if(local_diag->verbose){
@@ -606,7 +606,6 @@ int bpf_sk_splice(struct __sk_buff *skb){
             return TC_ACT_SHOT;
         }
     }
-
     struct tuple_key tcp_state_key;
     struct tuple_key udp_state_key;
 
@@ -617,7 +616,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
             return TC_ACT_SHOT;
 	}
 
-    /* check if incomming packet is a UDP or TCP tuple */
+    /* check if incoming packet is a UDP or TCP tuple */
     tuple = get_tuple(skb, sizeof(*eth), eth->h_proto, &ipv4,&ipv6, &udp, &tcp, &arp, &icmp, local_diag);
 
     /*look up attached interface IP address*/
@@ -659,7 +658,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
         }
     }
 
-    /* determine length of tupple */
+    /* determine length of tuple */
     tuple_len = sizeof(tuple->ipv4);
     if ((unsigned long)tuple + tuple_len > (unsigned long)skb->data_end){
        return TC_ACT_SHOT;
@@ -681,14 +680,14 @@ int bpf_sk_splice(struct __sk_buff *skb){
     if(udp && (bpf_ntohs(tuple->ipv4.sport) == 67) && (bpf_ntohs(tuple->ipv4.dport) == 68)){
        return TC_ACT_OK;
     }
-     /* if tcp based tuple implement statefull inspection to see if they were
-     * initiated by the local OS if not pass on to tproxy logic to determin if the
+     /* if tcp based tuple implement stateful inspection to see if they were
+     * initiated by the local OS if not pass on to tproxy logic to determine if the
      * openziti router has tproxy intercepts defined for the flow
      */
     if(tcp){
-    /*if tcp based tuple implement statefull inspection to see if they were
+    /*if tcp based tuple implement stateful inspection to see if they were
      * initiated by the local OS and If yes jump to assign. Then check if tuple is a reply to 
-      outbound initated from through the router interface. if not pass on to tproxy logic
+      outbound initiated from through the router interface. if not pass on to tproxy logic
       to determine if the openziti router has tproxy intercepts defined for the flow*/
        sk = bpf_skc_lookup_tcp(skb, tuple, tuple_len,BPF_F_CURRENT_NETNS, 0);
        if(sk){
@@ -767,9 +766,9 @@ int bpf_sk_splice(struct __sk_buff *skb){
             }
        }
     }else{
-       /* if udp based tuple implement statefull inspection to 
-        * implement statefull inspection to see if they were initiated by the local OS and If yes jump
-        * to assign label. Then check if tuple is a reply to outbound initated from through the router interface. 
+       /* if udp based tuple implement stateful inspection to 
+        * implement stateful inspection to see if they were initiated by the local OS and If yes jump
+        * to assign label. Then check if tuple is a reply to outbound initiated from through the router interface. 
         * if not pass on to tproxy logic to determine if the openziti router has tproxy intercepts
         * defined for the flow*/
         sk = bpf_sk_lookup_udp(skb, tuple, tuple_len, BPF_F_CURRENT_NETNS, 0);
@@ -831,7 +830,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
     /*release sk*/
     bpf_sk_release(sk);
     if(ret == 0){
-        //if succedded forward to the stack
+        //if succeeded forward to the stack
         return TC_ACT_OK;
     }
     /*else drop packet if not running on loopback*/
@@ -854,7 +853,7 @@ int bpf_sk_splice1(struct __sk_buff *skb){
     struct ethhdr *eth = (struct ethhdr *)(unsigned long)(skb->data);
     
 
-    /* check if incomming packet is a UDP or TCP tuple */
+    /* check if incoming packet is a UDP or TCP tuple */
     struct iphdr *iph = (struct iphdr *)(skb->data + sizeof(*eth));
     protocol = iph->protocol;
     tuple = (struct bpf_sock_tuple *)(void*)(long)&iph->saddr;
@@ -863,10 +862,10 @@ int bpf_sk_splice1(struct __sk_buff *skb){
        return TC_ACT_SHOT;
     }
 	struct tproxy_tuple *tproxy;
-    __u32 dexponent=24;  /* unsigned integer used to calulate prefix matches */
-    __u32 dmask = 0xffffffff;  /* starting mask value used in prfix match calculation */
-    __u32 sexponent=24;  /* unsigned integer used to calulate prefix matches */
-    __u32 smask = 0xffffffff;  /* starting mask value used in prfix match calculation */
+    __u32 dexponent=24;  /* unsigned integer used to calculate prefix matches */
+    __u32 dmask = 0xffffffff;  /* starting mask value used in prefix match calculation */
+    __u32 sexponent=24;  /* unsigned integer used to calculate prefix matches */
+    __u32 smask = 0xffffffff;  /* starting mask value used in prefix match calculation */
     __u16 maxlen = 8; /* max number ip ipv4 prefixes */
     __u16 smaxlen = 32; /* max number ip ipv4 prefixes */
     /*Main loop to lookup tproxy prefix matches in the zt_tproxy_map*/
