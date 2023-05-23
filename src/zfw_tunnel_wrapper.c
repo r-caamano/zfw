@@ -58,7 +58,11 @@ void close_maps(int code);
 void open_transp_map();
 void open_tun_map();
 void zfw_update(char *ip, char *mask, char *lowport, char *highport, char *protocol, char *action);
+void unbind_route_loopback(struct in_addr *address, unsigned short mask);
 void INThandler(int sig);
+void map_delete_key(char *service_id);
+void route_flush();
+int process_bind(char *service_id);
 
 /*convert integer ip to dotted decimal string*/
 char *nitoa(uint32_t address)
@@ -99,6 +103,7 @@ struct ifindex_tun {
 
 void INThandler(int sig){
     signal(sig, SIG_IGN);
+    route_flush();
     close_maps(1);
 }
 
@@ -117,6 +122,32 @@ void close_maps(int code){
     }
     exit(code);
 }
+
+void route_flush()
+{
+    struct transp_key init_key = {{0}};
+    struct transp_key *key = &init_key;
+    struct transp_value o_routes;
+    struct transp_key current_key;
+    transp_map.key = (uint64_t)&key;
+    transp_map.value = (uint64_t)&o_routes;
+    transp_map.map_fd = transp_fd;
+    transp_map.flags = BPF_ANY;
+    int ret = 0;
+    while (true)
+    {
+        ret = syscall(__NR_bpf, BPF_MAP_GET_NEXT_KEY, &transp_map, sizeof(transp_map));
+        if (ret == -1)
+        {
+            break;
+        }
+        transp_map.key = transp_map.next_key;
+        current_key = *(struct transp_key *)transp_map.key;
+        //map_delete_key(current_key.service_id);
+        process_bind(current_key.service_id);
+    }
+}
+
 
 void ebpf_usage()
 {
