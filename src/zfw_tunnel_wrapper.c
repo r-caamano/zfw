@@ -35,9 +35,9 @@
 #ifndef BPF_MAX_ENTRIES
 #define BPF_MAX_ENTRIES   100 //MAX # PREFIXES
 #endif
-#define MAX_LINE_LENGTH     2048
+#define MAX_LINE_LENGTH     32766
 #define BUFFER_SIZE         512
-#define EVENT_BUFFER_SIZE   4096
+#define EVENT_BUFFER_SIZE   32768
 #define SERVICE_ID_BYTES    32
 #define MAX_TRANSP_ROUTES   256
 #define SOCK_NAME "/tmp/ziti-edge-tunnel.sock"
@@ -804,7 +804,7 @@ int run(){
         memset(&event_buffer, 0, EVENT_BUFFER_SIZE);
         char ch[1];
         int count = 0;
-        while((read(event_socket, ch, 1 ) != 0) && count < EVENT_BUFFER_SIZE){
+        while((read(event_socket, ch, 1 ) != 0) && count < MAX_LINE_LENGTH){
             if(ch[0] != '\n'){
                 //printf("%c", ch[0]);
                 event_buffer[count] = ch[0];
