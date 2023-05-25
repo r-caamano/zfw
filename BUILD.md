@@ -17,7 +17,7 @@
         ```bash      
         mkdir ~/repos
         cd repos
-        git clone https://github.com/r-caamano/ebpf-tproxy-splicer.git 
+        git clone https://github.com/r-caamano/zfw.git 
         cd zfw/src
         clang -g -O2 -Wall -Wextra -target bpf -c -o zfw_tc_ingress.o zfw_tc_ingress.c
         clang -g -O2 -Wall -Wextra -target bpf -c -o zfw_xdp_tun_ingress.o zfw_xdp_tun_ingress.c
@@ -43,7 +43,7 @@
         ```bash      
         mkdir ~/repos
         cd repos
-        git clone https://github.com/r-caamano/ebpf-tproxy-splicer.git 
+        git clone https://github.com/r-caamano/zfw.git
         cd zfw/src
         clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o zfw_tc_ingress.o zfw_tc_ingress.c
         clang -g -O2 -Wall -I /usr/include/aarch64-linux-gnu/ -Wextra -target bpf -c -o zfw_xdp_tun_ingress.o zfw_xdp_tun_ingress.c
