@@ -70,7 +70,7 @@ jobs:
           chmod +x ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/start_ebpf.py
           chmod +x ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/user/user_rules.sh.sample
           ln -s /opt/openziti/bin/zfw ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/usr/sbin/zfw
-          dpkg-deb --build --root-owner-group ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}        
+          dpkg-deb --build -Z gzip --root-owner-group ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}        
       - uses: actions/upload-artifact@v3
         with:
           name: artifact-amd64-deb
@@ -136,7 +136,7 @@ jobs:
           chmod +x ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/start_ebpf.py
           chmod +x ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/opt/openziti/bin/user/user_rules.sh.sample
           ln -s /opt/openziti/bin/zfw ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}/usr/sbin/zfw
-          dpkg-deb --build --root-owner-group ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}      
+          dpkg-deb --build -Z gzip --root-owner-group ${{ env.APP_NAME }}_${{ steps.version.outputs.version }}_${{ matrix.goarch }}      
       - uses: actions/upload-artifact@v3
         with:
           name: artifact-arm64-deb
