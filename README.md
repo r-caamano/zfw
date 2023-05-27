@@ -12,10 +12,11 @@ edge-routers deb package / manual instructions not yet available but coming soon
 
 [To build zfw from source. Click here!](./BUILD.md)
 
-## Management After Deployment 
+## Deployment 
 
 The program is designed to be deployed as systemd services if deployed via .deb package with
-an existing ziti-edge-tunnel(v21.0 +) on Ubuntu 22.04(amd64/arm64)service installation.  
+an existing ziti-edge-tunnel(v21.0 +) on Ubuntu 22.04(amd64/arm64)service installation. If you don't currently
+have ziti-edge-tunnel installed follow the Ubuntu 22.04 installation instructions here:[ziti-edge-tunnel](https://docs.openziti.io/docs/reference/tunnelers/linux/).
 
 - Install
 ```
