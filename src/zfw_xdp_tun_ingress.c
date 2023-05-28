@@ -24,9 +24,6 @@
 #ifndef memcpy
  #define memcpy(dest, src, n) __builtin_memcpy((dest), (src), (n))
 #endif
-#define BPF_MAP_ID_DIAG_MAP     5
-#define BPF_MAP_ID_TUN_MAP      9
-#define BPF_MAP_ID_IFINDEX_TUN  10
 #define MAX_IF_ENTRIES          30
 #define BPF_MAX_SESSIONS        10000
 
@@ -64,7 +61,6 @@ struct ifindex_tun {
 /*tun ifindex map*/
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(id, BPF_MAP_ID_IFINDEX_TUN);
     __uint(key_size, sizeof(uint32_t));
     __uint(value_size, sizeof(struct ifindex_tun));
     __uint(max_entries, 1);
@@ -74,7 +70,6 @@ struct {
 /*Hashmap to track tun interface inbound passthrough connections*/
 struct {
      __uint(type, BPF_MAP_TYPE_LRU_HASH);
-     __uint(id, BPF_MAP_ID_TUN_MAP);
      __uint(key_size, sizeof(struct tun_key));
      __uint(value_size,sizeof(struct tun_state));
      __uint(max_entries, BPF_MAX_SESSIONS);
