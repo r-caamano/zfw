@@ -204,17 +204,9 @@ sudo zfw --set-tc-filter <interface name>  --direction <ingress | egress> --disa
 sudo systemctl stop ziti-wrapper.service
 sudo dpkg -i <zfw_<ver>_<arch>.deb
 ```
-After updating reboot the system (preferred method) 
+After updating reboot the system 
 ```
 sudo reboot
-```
-
-or 
-
-
-```
-sudo zfw -Q
-sudo systemctl restart ziti-edge-tunnel.service
 ```
 
 ## Ebpf Map User Space Management
