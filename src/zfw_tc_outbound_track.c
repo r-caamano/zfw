@@ -29,9 +29,6 @@
 #include <linux/if.h>
 #include <stdio.h>
 
-#define BPF_MAP_ID_DIAG_MAP 5
-#define BPF_MAP_ID_TCP_MAP  7
-#define BPF_MAP_ID_UDP_MAP  8
 #define MAX_IF_ENTRIES      30
 #define BPF_MAX_SESSIONS    10000
 
@@ -73,7 +70,6 @@ struct diag_ip4 {
 //map to keep status of diagnostic rules
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(id, BPF_MAP_ID_DIAG_MAP);
     __uint(key_size, sizeof(uint32_t));
     __uint(value_size, sizeof(struct diag_ip4));
     __uint(max_entries, MAX_IF_ENTRIES);
@@ -83,7 +79,6 @@ struct {
 /*Hashmap to track outbound passthrough TCP connections*/
 struct {
      __uint(type, BPF_MAP_TYPE_LRU_HASH);
-     __uint(id, BPF_MAP_ID_TCP_MAP);
      __uint(key_size, sizeof(struct tuple_key));
      __uint(value_size,sizeof(struct tcp_state));
      __uint(max_entries, BPF_MAX_SESSIONS);
@@ -93,7 +88,6 @@ struct {
 /*Hashmap to track outbound passthrough UDP connections*/
 struct {
      __uint(type, BPF_MAP_TYPE_LRU_HASH);
-     __uint(id, BPF_MAP_ID_UDP_MAP);
      __uint(key_size, sizeof(struct tuple_key));
      __uint(value_size,sizeof(struct udp_state));
      __uint(max_entries, BPF_MAX_SESSIONS);

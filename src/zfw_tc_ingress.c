@@ -28,17 +28,7 @@
 #include <linux/if.h>
 #include <stdio.h>
 
-#define BPF_MAP_ID_TPROXY           1
-#define BPF_MAP_ID_IFINDEX_IP       2
 #define BPF_MAP_ID_PROG_MAP         3
-#define BPF_MAP_ID_MATCHED_KEY      4
-#define BPF_MAP_ID_DIAG_MAP         5
-
-#define BPF_MAP_ID_TUPLE_COUNT_MAP  6
-#define BPF_MAP_ID_TCP_MAP          7
-#define BPF_MAP_ID_UDP_MAP          8
-#define BPF_MAP_ID_TUN_MAP          9
-#define BPF_MAP_ID_IFINDEX_TUN      10
 #ifndef BPF_MAX_ENTRIES
 #define BPF_MAX_ENTRIES   100 //MAX # PREFIXES
 #endif
@@ -188,7 +178,6 @@ struct transp_value{
 
 struct {
      __uint(type, BPF_MAP_TYPE_HASH);
-     __uint(id, BPF_MAP_ID_TPROXY);
      __uint(key_size, sizeof(struct transp_key));
      __uint(value_size,sizeof(struct transp_value));
      __uint(max_entries, BPF_MAX_ENTRIES);
@@ -199,7 +188,7 @@ struct {
 /*bpf program map*/
 struct bpf_elf_map SEC("maps") prog_map = {
 	.type		= BPF_MAP_TYPE_PROG_ARRAY,
-	.id		= 3,
+	.id	        = BPF_MAP_ID_PROG_MAP,
 	.size_key	= sizeof(uint32_t),
 	.size_value	= sizeof(uint32_t),
 	.pinning	= PIN_GLOBAL_NS,
@@ -212,7 +201,6 @@ added to accommodate the additional instructions per ebpf program.  The search n
 5 ebpf programs  */
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(id, BPF_MAP_ID_MATCHED_KEY);
     __uint(key_size, sizeof(unsigned int));
     __uint(value_size, sizeof(struct match_tracker));
     __uint(max_entries, MATCHED_INT_DEPTH);
@@ -228,7 +216,6 @@ struct {
 */
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(id, BPF_MAP_ID_IFINDEX_IP);
     __uint(key_size, sizeof(uint32_t));
     __uint(value_size, sizeof(struct ifindex_ip4));
     __uint(max_entries, MAX_IF_ENTRIES);
@@ -238,7 +225,6 @@ struct {
 /*tun ifindex map*/
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(id, BPF_MAP_ID_IFINDEX_TUN);
     __uint(key_size, sizeof(uint32_t));
     __uint(value_size, sizeof(struct ifindex_tun));
     __uint(max_entries, 1);
@@ -248,7 +234,6 @@ struct {
 //map to keep status of diagnostic rules
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(id, BPF_MAP_ID_DIAG_MAP);
     __uint(key_size, sizeof(uint32_t));
     __uint(value_size, sizeof(struct diag_ip4));
     __uint(max_entries, MAX_IF_ENTRIES);
@@ -258,7 +243,6 @@ struct {
 //map to keep track of total entries in zt_tproxy_map
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(id, BPF_MAP_ID_TUPLE_COUNT_MAP);
     __uint(key_size, sizeof(uint32_t));
     __uint(value_size, sizeof(uint32_t));
     __uint(max_entries, 1);
@@ -287,7 +271,6 @@ struct {
 */
 struct {
      __uint(type, BPF_MAP_TYPE_HASH);
-     __uint(id, BPF_MAP_ID_TPROXY);
      __uint(key_size, sizeof(struct tproxy_key));
      __uint(value_size,sizeof(struct tproxy_tuple));
      __uint(max_entries, BPF_MAX_ENTRIES);
@@ -297,7 +280,6 @@ struct {
 
 struct {
      __uint(type, BPF_MAP_TYPE_LRU_HASH);
-     __uint(id, BPF_MAP_ID_TCP_MAP);
      __uint(key_size, sizeof(struct tuple_key));
      __uint(value_size,sizeof(struct tcp_state));
      __uint(max_entries, BPF_MAX_SESSIONS);
@@ -306,7 +288,6 @@ struct {
 
 struct {
      __uint(type, BPF_MAP_TYPE_LRU_HASH);
-     __uint(id, BPF_MAP_ID_UDP_MAP);
      __uint(key_size, sizeof(struct tuple_key));
      __uint(value_size,sizeof(struct udp_state));
      __uint(max_entries, BPF_MAX_SESSIONS);
@@ -316,7 +297,6 @@ struct {
 /*Hashmap to track tun interface inbound passthrough connections*/
 struct {
      __uint(type, BPF_MAP_TYPE_LRU_HASH);
-     __uint(id, BPF_MAP_ID_TUN_MAP);
      __uint(key_size, sizeof(struct tun_key));
      __uint(value_size,sizeof(struct tun_state));
      __uint(max_entries, BPF_MAX_SESSIONS);
