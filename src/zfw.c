@@ -95,7 +95,6 @@ const char *count_map_path = "/sys/fs/bpf/tc/globals/tuple_count_map";
 const char *diag_map_path = "/sys/fs/bpf/tc/globals/diag_map";
 const char *if_map_path = "/sys/fs/bpf/tc/globals/ifindex_ip_map";
 const char *matched_map_path = "/sys/fs/bpf/tc//globals/matched_map";
-const char *program_map_path = "/sys/fs/bpf/tc/globals/prog_map";
 const char *tcp_map_path = "/sys/fs/bpf/tc/globals/tcp_map";
 const char *udp_map_path = "/sys/fs/bpf/tc/globals/udp_map";
 const char *tun_map_path = "/sys/fs/bpf/tc/globals/tun_map";
@@ -112,7 +111,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.1.19";
+const char *argp_program_version = "0.2.0";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -288,25 +287,35 @@ void set_tc_filter(char *action)
     if (!strcmp(action, "add"))
     {
         set_tc(action);
-        char *const parmList[] = {"/usr/sbin/tc", "filter", action, "dev", tc_interface, direction_string, "bpf",
-                                  "da", "obj", object_file, "sec", "action", NULL};
-        if ((pid = fork()) == -1)
-        {
-            perror("fork error: can't attach filter");
-        }
-        else if (pid == 0)
-        {
-            execv("/usr/sbin/tc", parmList);
-            printf("execv error: unknown error attaching filter");
-        }
-        else
-        {
-            int status = 0;
-            if (!(waitpid(pid, &status, 0) > 0))
+        for(int x = 0; x < 6; x++){
+            char prio[10];
+            sprintf(prio, "%d", x + 1);
+            char section[10];
+            if(x ==0){
+                sprintf(section, "action");;
+            }else{
+                sprintf(section, "action/%d", x);
+            }
+            char *const parmList[] = {"/usr/sbin/tc", "filter", action, "dev", tc_interface, direction_string, "prio", prio, "bpf",
+                                    "da", "obj", object_file, "sec", section, NULL};
+            if ((pid = fork()) == -1)
             {
-                if (WIFEXITED(status) && !WEXITSTATUS(status))
+                perror("fork error: can't attach filter");
+            }
+            else if (pid == 0)
+            {
+                execv("/usr/sbin/tc", parmList);
+                printf("execv error: unknown error attaching filter");
+            }
+            else
+            {
+                int status = 0;
+                if (!(waitpid(pid, &status, 0) > 0))
                 {
-                    printf("tc %s filter not set : %s\n", direction_string, tc_interface);
+                    if (WIFEXITED(status) && !WEXITSTATUS(status))
+                    {
+                        printf("tc %s filter not set : %s\n", direction_string, tc_interface);
+                    }
                 }
             }
         }
@@ -332,10 +341,10 @@ void disable_ebpf()
     disable = true;
     tc = true;
     interface_tc();
-    const char *maps[11] = {tproxy_map_path, diag_map_path, if_map_path, count_map_path, program_map_path,
+    const char *maps[10] = {tproxy_map_path, diag_map_path, if_map_path, count_map_path,
                             udp_map_path, matched_map_path, tcp_map_path, tun_map_path, if_tun_map_path,
                              transp_map_path};
-    for (int map_count = 0; map_count < 11; map_count++)
+    for (int map_count = 0; map_count < 10; map_count++)
     {
 
         int stat = remove(maps[map_count]);
@@ -845,8 +854,9 @@ bool set_diag(uint32_t *idx)
             }
             if (ssh_disable)
             {
-                if (!disable || *idx == 1)
+                if (!disable && *idx != 1)
                 {
+                    printf("setting to true %d\n", *idx);
                     o_diag.ssh_disable = true;
                 }
                 else
@@ -859,7 +869,7 @@ bool set_diag(uint32_t *idx)
                 }
                 else
                 {
-                    printf("Set disable_ssh is always set to 1 for lo\n");
+                    printf("Set disable_ssh is always set to 0 for lo\n");
                 }
             }
             if (tcfilter && !strcmp("ingress", direction_string))

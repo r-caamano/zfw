@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.2.0] - 2023-05-29
+
+###
+
+- Changed ebpf program chaining method from tail calls to tc filter chaining.  This 
+  change should allow for installation on newer linux releases that do not support
+  legacy ELF maps. 
+- Fixed issue where if the loopback was set to disable ssh via zfw -x, --disable-ssh 
+  the diag setting incorrectly set it to disabled and would not allow the disable to
+  be removed without clearing the ebpf diag map manually.
+
 # [0.1.19] - 2023-05-25
 
 ###

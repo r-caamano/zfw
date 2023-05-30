@@ -96,8 +96,18 @@ sudo tc filter show dev ens33 ingress
 ```   
 If running:
 ```
-filter protocol all pref 49152 bpf chain 0 
-filter protocol all pref 49152 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action] direct-action not_in_hw id 240 tag 689a7073bde6f9b0 jited
+filter protocol all pref 1 bpf chain 0 
+filter protocol all pref 1 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action] direct-action not_in_hw id 26 tag e8986d00fc5c5f5a 
+filter protocol all pref 2 bpf chain 0 
+filter protocol all pref 2 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/1] direct-action not_in_hw id 31 tag ae5f218d80f4f200 
+filter protocol all pref 3 bpf chain 0 
+filter protocol all pref 3 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/2] direct-action not_in_hw id 36 tag 751abd4726b3131a 
+filter protocol all pref 4 bpf chain 0 
+filter protocol all pref 4 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/3] direct-action not_in_hw id 41 tag 63aad9fa64a9e4d2 
+filter protocol all pref 5 bpf chain 0 
+filter protocol all pref 5 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/4] direct-action not_in_hw id 46 tag 6c63760ceaa339b7 
+filter protocol all pref 6 bpf chain 0 
+filter protocol all pref 6 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/5] direct-action not_in_hw id 51 tag b7573c4cb901a5da
 ```    
 If not running:
 ```
