@@ -294,6 +294,9 @@ void set_tc_filter(char *action)
             if(x ==0){
                 sprintf(section, "action");;
             }else{
+                if(!strcmp(direction_string,"egress")){
+                    break;
+                }
                 sprintf(section, "action/%d", x);
             }
             char *const parmList[] = {"/usr/sbin/tc", "filter", action, "dev", tc_interface, direction_string, "prio", prio, "bpf",
