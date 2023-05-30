@@ -28,7 +28,6 @@
 #include <linux/if.h>
 #include <stdio.h>
 
-#define BPF_MAP_ID_PROG_MAP         3
 #ifndef BPF_MAX_ENTRIES
 #define BPF_MAX_ENTRIES   100 //MAX # PREFIXES
 #endif
@@ -184,16 +183,6 @@ struct {
      __uint(pinning, LIBBPF_PIN_BY_NAME);
      __uint(map_flags, BPF_F_NO_PREALLOC);
 } zet_transp_map SEC(".maps");
-
-/*bpf program map*/
-struct bpf_elf_map SEC("maps") prog_map = {
-	.type		= BPF_MAP_TYPE_PROG_ARRAY,
-	.id	        = BPF_MAP_ID_PROG_MAP,
-	.size_key	= sizeof(uint32_t),
-	.size_value	= sizeof(uint32_t),
-	.pinning	= PIN_GLOBAL_NS,
-	.max_elem	= 10,
-};
 
 /*map to track up to 3 key matches per incoming packet search.  Map is 
 then used to search for port mappings.  This was required when source filtering was 
@@ -648,7 +637,6 @@ int bpf_sk_splice(struct __sk_buff *skb){
        return TC_ACT_OK;
     }
 
-
     /* allow ssh to local system */
     if(((!local_ip4) || (!local_ip4->ipaddr)) || ((tuple->ipv4.daddr == local_ip4->ipaddr) && !local_diag->ssh_disable)){
        if(tcp && (bpf_ntohs(tuple->ipv4.dport) == 22)){
@@ -798,12 +786,8 @@ int bpf_sk_splice(struct __sk_buff *skb){
     }
     //init the match_count_map
     clear_match_tracker(skb->ifindex);
-    bpf_tail_call(skb, &prog_map, 1);
-    if(skb->ingress_ifindex == 1){
-        return TC_ACT_OK;
-    }else{
-        return TC_ACT_SHOT;
-    }
+    return TC_ACT_PIPE;
+
     assign:
     /*attempt to splice the skb to the tproxy or local socket*/
     ret = bpf_sk_assign(skb, sk, 0);
@@ -823,7 +807,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
 
 /*Search for keys with Dest mask lengths from /32 down to /25
 * and Source masks /32 down to /0 */
-SEC("3/1")
+SEC("action/1")
 int bpf_sk_splice1(struct __sk_buff *skb){
     struct bpf_sock_tuple *tuple;
     int tuple_len;
@@ -870,7 +854,7 @@ int bpf_sk_splice1(struct __sk_buff *skb){
                         tracked_key_data->count++;
                     }
                     if(tracked_key_data->count == MATCHED_KEY_DEPTH){
-                            bpf_tail_call(skb, &prog_map, 5);
+                        return TC_ACT_PIPE;
                     }
                 }              
                 if(smask == 0x00000000){
@@ -883,8 +867,7 @@ int bpf_sk_splice1(struct __sk_buff *skb){
             each octet.
             */
             if(dmask == 0x80ffffff){
-                bpf_tail_call(skb, &prog_map, 2);
-                break;
+                return TC_ACT_PIPE;
             }
             iterate_masks(&dmask, &dexponent);
             smask = 0xffffffff;
@@ -896,7 +879,7 @@ int bpf_sk_splice1(struct __sk_buff *skb){
 
 /*Search for keys with Dest mask lengths from /24 down to /17
 * and Source masks /32 down to /0 */
-SEC("3/2")
+SEC("action/2")
 int bpf_sk_splice2(struct __sk_buff *skb){
     struct bpf_sock_tuple *tuple;
     int tuple_len;
@@ -942,7 +925,7 @@ int bpf_sk_splice2(struct __sk_buff *skb){
                         tracked_key_data->count++;
                     }
                     if(tracked_key_data->count == MATCHED_KEY_DEPTH){
-                            bpf_tail_call(skb, &prog_map, 5);
+                        return TC_ACT_PIPE;
                     }
                 }              
                 if(smask == 0x00000000){
@@ -955,8 +938,7 @@ int bpf_sk_splice2(struct __sk_buff *skb){
             each octet.
             */
             if(dmask == 0x80ffff){
-                bpf_tail_call(skb, &prog_map, 3);
-                break;
+                return TC_ACT_PIPE;
             }
             iterate_masks(&dmask, &dexponent);
             smask = 0xffffffff;
@@ -968,7 +950,7 @@ int bpf_sk_splice2(struct __sk_buff *skb){
 
 /*Search for keys with Dest mask lengths from /16 down to /9
 * and Source masks /32 down to /0 */
-SEC("3/3")
+SEC("action/3")
 int bpf_sk_splice3(struct __sk_buff *skb){
     struct bpf_sock_tuple *tuple;
     int tuple_len;
@@ -1013,7 +995,7 @@ int bpf_sk_splice3(struct __sk_buff *skb){
                         tracked_key_data->count++;
                     }
                     if(tracked_key_data->count == MATCHED_KEY_DEPTH){
-                            bpf_tail_call(skb, &prog_map, 5);
+                        return TC_ACT_PIPE;
                     }
                 }               
                 if(smask == 0x00000000){
@@ -1026,8 +1008,7 @@ int bpf_sk_splice3(struct __sk_buff *skb){
             each octet.
             */
             if(dmask == 0x80ff){
-                bpf_tail_call(skb, &prog_map, 4);
-                break;
+                return TC_ACT_PIPE;
             }
             iterate_masks(&dmask, &dexponent);
             smask = 0xffffffff;
@@ -1039,7 +1020,7 @@ int bpf_sk_splice3(struct __sk_buff *skb){
 
 /*Search for keys with Dest mask lengths from /8 down to /0
 * and Source masks /32 down to /0 */
-SEC("3/4")
+SEC("action/4")
 int bpf_sk_splice4(struct __sk_buff *skb){
     struct bpf_sock_tuple *tuple;
     int tuple_len;
@@ -1084,7 +1065,7 @@ int bpf_sk_splice4(struct __sk_buff *skb){
                         tracked_key_data->count++;
                     }
                     if(tracked_key_data->count == MATCHED_KEY_DEPTH){
-                            bpf_tail_call(skb, &prog_map, 5);
+                        return TC_ACT_PIPE;
                     }
                 }              
                 if(smask == 0x00000000){
@@ -1098,8 +1079,7 @@ int bpf_sk_splice4(struct __sk_buff *skb){
             */
             if(dmask == 0x00000000){
                 if((tracked_key_data->count > 0)){
-                    bpf_tail_call(skb, &prog_map, 5);
-                    break;
+                    return TC_ACT_PIPE;
                 }
             }
             iterate_masks(&dmask, &dexponent);
@@ -1110,7 +1090,7 @@ int bpf_sk_splice4(struct __sk_buff *skb){
     return TC_ACT_SHOT;
 }
 
-SEC("3/5")
+SEC("action/5")
 int bpf_sk_splice5(struct __sk_buff *skb){
     struct bpf_sock *sk;
     int ret; 
