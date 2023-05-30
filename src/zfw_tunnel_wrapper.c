@@ -49,6 +49,7 @@ int ctrl_socket, event_socket;
 char tunip_string[16]="";
 char tunip_mask_string[10]="";
 char *tun_ifname;
+bool transparent;
 union bpf_attr transp_map;
 int transp_fd = -1;
 union bpf_attr tun_map;
@@ -628,9 +629,15 @@ int process_dial(json_object *jobj, char *action){
                                                     printf("Low=%s\n", lowport); 
                                                     printf("high=%s\n\n", highport);
                                                     struct in_addr tuncidr;
-                                                    if (inet_aton(ip, &tuncidr) && tun_ifname){
-                                                        unbind_route(&tuncidr, len2u16(mask), tun_ifname);
-                                                    }   
+                                                    char *transp_mode = "TRANSPARENT_MODE";
+                                                    char *mode = getenv(transp_mode);
+                                                    if(mode){
+                                                        if(!strcmp(mode,"true")){
+                                                            if (inet_aton(ip, &tuncidr) && tun_ifname){
+                                                                unbind_route(&tuncidr, len2u16(mask), tun_ifname);
+                                                            }  
+                                                        }
+                                                    } 
                                                     zfw_update(ip, mask, lowport, highport, protocol, action);
                                                 }  
                                             }
