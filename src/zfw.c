@@ -859,7 +859,6 @@ bool set_diag(uint32_t *idx)
             {
                 if (!disable && *idx != 1)
                 {
-                    printf("setting to true %d\n", *idx);
                     o_diag.ssh_disable = true;
                 }
                 else
