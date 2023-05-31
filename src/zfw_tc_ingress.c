@@ -1133,14 +1133,16 @@ int bpf_sk_splice5(struct __sk_buff *skb){
     if (match_count > MATCHED_KEY_DEPTH){
        match_count = MATCHED_KEY_DEPTH;
     }
-    for(__u16 count =0; count < match_count; count++){
+    for(__u16 count =0; count < match_count; count++)
+    {
         key_tracker = get_matched_keys(skb->ifindex);
         if(key_tracker){
            key = key_tracker->matched_keys[count];
         }else{
             break;
         }
-        if((tproxy = get_tproxy(key)) && tuple){
+        if((tproxy = get_tproxy(key)) && tuple)
+        {
             __u16 max_entries = tproxy->index_len;
             if (max_entries > MAX_INDEX_ENTRIES) {
                 max_entries = MAX_INDEX_ENTRIES;
@@ -1150,7 +1152,8 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                 int port_key = tproxy->index_table[index];
                 //check if there is a udp or tcp destination port match
                 if ((bpf_ntohs(tuple->ipv4.dport) >= bpf_ntohs(tproxy->port_mapping[port_key].low_port))
-                && (bpf_ntohs(tuple->ipv4.dport) <= bpf_ntohs(tproxy->port_mapping[port_key].high_port))) {
+                     && (bpf_ntohs(tuple->ipv4.dport) <= bpf_ntohs(tproxy->port_mapping[port_key].high_port))) 
+                {
                      if(local_diag->verbose){
                         bpf_printk("%s",local_ip4->ifname);
                         bpf_printk("source_ip = 0x%X",bpf_ntohl(tuple->ipv4.saddr));
@@ -1167,7 +1170,7 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                         if(tproxy->port_mapping[port_key].tproxy_port == 0){
                             return TC_ACT_OK;
                         }
-                        if(!local_diag->tun_mode && tproxy->port_mapping[port_key].tproxy_port == 65535){
+                        if(!local_diag->tun_mode){
                             if(key.protocol == IPPROTO_TCP){
                                 sk = bpf_skc_lookup_tcp(skb, &sockcheck, sizeof(sockcheck.ipv4),BPF_F_CURRENT_NETNS, 0);
                             }else{
@@ -1218,7 +1221,7 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                             if(tproxy->port_mapping[port_key].tproxy_port == 0){
                                 return TC_ACT_OK;
                             }
-                            if(!local_diag->tun_mode && tproxy->port_mapping[port_key].tproxy_port == 65535){
+                            if(!local_diag->tun_mode){
                                 if(key.protocol == IPPROTO_TCP){
                                     sk = bpf_skc_lookup_tcp(skb, &sockcheck, sizeof(sockcheck.ipv4),BPF_F_CURRENT_NETNS, 0);
                                 }else{
@@ -1250,7 +1253,9 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                                     insert_tun(tus, tun_state_key);
                                 }
                                 else if(tustate){
-                                    bpf_printk("state: %x\n", tustate->dest[0]);
+                                    if(local_diag->verbose){
+                                        bpf_printk("state: %x\n", tustate->dest[0]);
+                                    }
                                     tustate->tstamp = tstamp;
                                     insert_tun(*tustate, tun_state_key);
                                 }
