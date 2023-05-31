@@ -80,21 +80,28 @@ Verify running:
 ```
 sudo zfw -L
 ```
-output:
+If running:
 ```
-
-if running and assuming you are using the default address range for ziti-edge-tunnel should see output like:
+Assuming you are using the default address range for ziti-edge-tunnel should see output like:
 
 target  	proto	origin              destination             mapping:                				                interface list                 
 --------	-----	-----------------	------------------		-------------------------------------------------------	-----------------
 TUNMODE    	tcp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535     	TUNMODE redirect:tun0               []
 TUNMODE    	udp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535     	TUNMODE redirect:tun0               []
 ```
+
+
+If not running:
+```
+Not enough privileges or ebpf not enabled!
+Run as "sudo" with ingress tc filter [filter -X, --set-tc-filter] set on at least one interface
+
+```
 Verify running on the configured interface i.e.
 ```
 sudo tc filter show dev ens33 ingress
 ```   
-If running:
+If running on interface:
 ```
 filter protocol all pref 1 bpf chain 0 
 filter protocol all pref 1 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action] direct-action not_in_hw id 26 tag e8986d00fc5c5f5a 
@@ -109,13 +116,7 @@ filter protocol all pref 5 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/4] di
 filter protocol all pref 6 bpf chain 0 
 filter protocol all pref 6 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/5] direct-action not_in_hw id 51 tag b7573c4cb901a5da
 ```    
-If not running:
-```
-Not enough privileges or ebpf not enabled!
-Run as "sudo" with ingress tc filter [filter -X, --set-tc-filter] set on at least one interface
 
-```
-    
 Services configured via the openziti controller for ingress on the running ziti-edge-tunnel identity will auto populate into
 the firewall's inbound rule list.
 
