@@ -111,7 +111,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.2.3";
+const char *argp_program_version = "0.2.2";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -383,27 +383,28 @@ int is_subset(__u32 network, __u32 netmask, __u32 prefix)
 }
 
 /* function to get ifindex by interface name */
-int get_index(char *if_name, uint32_t *idx)
+int get_index(char *name, uint32_t *idx)
 {
-    struct ifreq ifr;
-    size_t if_name_len=strlen(if_name);
-    if (if_name_len<sizeof(ifr.ifr_name)) {
-        memcpy(ifr.ifr_name,if_name,if_name_len);
-        ifr.ifr_name[if_name_len]=0;
-     } else {
-        return -1;
-     }
-     int fd=socket(AF_UNIX,SOCK_DGRAM,0);
-     if (fd==-1) {
-        return -1;
-     }
-     if (ioctl(fd,SIOCGIFINDEX,&ifr)==-1) {
-          close(fd);
-          return -1;
-     }
-     *idx = ifr.ifr_ifindex;
-     close(fd);
-     return 0;
+    int fd, result;
+    struct ifreq irequest;
+
+    fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (fd == -1)
+        return errno;
+
+    strncpy(irequest.ifr_name, name, IF_NAMESIZE);
+    if (ioctl(fd, SIOCGIFINDEX, &irequest) == -1)
+    {
+        do
+        {
+            result = close(fd);
+        } while (result == -1 && errno == EINTR);
+        return errno = ENOENT;
+    }
+
+    *idx = irequest.ifr_ifindex;
+
+    return 0;
 }
 
 /* convert string port to unsigned short int */
@@ -943,57 +944,42 @@ bool set_diag(uint32_t *idx)
 
 void interface_tc()
 {
-    char if_buf[(BPF_MAX_ENTRIES + MAX_IF_ENTRIES) * sizeof(struct ifreq)];
-    struct ifconf ifcnf;
-    struct ifreq *ifrq;
-    int           sk;
-    int           intf_count;
-    int           intf;
-    sk = socket(AF_INET, SOCK_DGRAM, 0);
-    if(sk < 0)
-    {
-        perror("socket");
-        return;
-    }
+    struct ifaddrs *addrs;
 
-    ifcnf.ifc_len = sizeof(if_buf);
-    ifcnf.ifc_buf = if_buf;
-    if(ioctl(sk, SIOCGIFCONF, &ifcnf) < 0)
+    /* call function to get a linked list of interface structs from system */
+    if (getifaddrs(&addrs) == -1)
     {
-        perror("ioctl(SIOCGIFCONF)");
-        close(sk);
-        return;
+        printf("can't get addrs");
+        exit(1);
     }
-    ifrq = ifcnf.ifc_req;
-    intf_count = ifcnf.ifc_len / sizeof(struct ifreq);
+    struct ifaddrs *address = addrs;
     uint32_t idx = 0;
+    /*
+     * traverse linked list of interfaces and for each non-loopback interface
+     *  populate the index into the map with ifindex as the key and ip address
+     *  as the value
+     */
     int lo_count = 0;
-    for(intf = 0; intf < intf_count; intf++)
+    while (address)
     {
-        struct ifreq *entry = &ifrq[intf];
-        if ((struct sockaddr_in *)&entry)
+        if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
-            get_index(entry->ifr_name, &idx);
-            if(!strncmp(entry->ifr_name,"tun", 3) || idx >= MAX_IF_ENTRIES){
-                if(!strncmp(tc_interface,"tun", 3)){
-                    printf("zfw does not allow tc filters on tun interfaces!\n");
-                }
+            get_index(address->ifa_name, &idx);
+            if(!strncmp(address->ifa_name,"tun", 3) || idx >= MAX_IF_ENTRIES){
+                address = address->ifa_next;
                 continue;
             }
-            if (!strncmp(entry->ifr_name, "lo", 2))
+            if (!strncmp(address->ifa_name, "lo", 2))
             {
                 lo_count++;
-                if((idx == 1) && lo_count > 1){
-                    continue;
-                }
             }
             if (all_interface)
             {
-                tc_interface = entry->ifr_name;
+                tc_interface = address->ifa_name;
             }
-            if ((tc || tcfilter))
+            if ((tc | tcfilter) && !((idx == 1) && lo_count > 1))
             {
-                if (!strcmp(tc_interface, entry->ifr_name))
+                if (!strcmp(tc_interface, address->ifa_name))
                 {
                     if (tc)
                     {
@@ -1028,8 +1014,9 @@ void interface_tc()
                 }
             }
         }
+        address = address->ifa_next;
     }
-    close(sk);
+    freeifaddrs(addrs);
 }
 
 void interface_diag()
@@ -1038,127 +1025,123 @@ void interface_diag()
         open_diag_map();
     }
     interface_map();
-    char if_buf[(BPF_MAX_ENTRIES + MAX_IF_ENTRIES) * sizeof(struct ifreq)];
-    struct ifconf ifcnf;
-    struct ifreq *ifrq;
-    int           sk;
-    int           intf_count;
-    int           intf;
-    sk = socket(AF_INET, SOCK_DGRAM, 0);
-    if(sk < 0)
+    struct ifaddrs *addrs;
+
+    /* call function to get a linked list of interface structs from system */
+    if (getifaddrs(&addrs) == -1)
     {
-        perror("socket");
-        return;
+        printf("can't get addrs");
+        exit(1);
     }
-    ifcnf.ifc_len = sizeof(if_buf);
-    ifcnf.ifc_buf = if_buf;
-    if(ioctl(sk, SIOCGIFCONF, &ifcnf) < 0)
-    {
-        perror("ioctl(SIOCGIFCONF)");
-        close(sk);
-        return;
-    }
-    ifrq = ifcnf.ifc_req;
-    intf_count = ifcnf.ifc_len / sizeof(struct ifreq);
+    struct ifaddrs *address = addrs;
     uint32_t idx = 0;
+    /*
+     * traverse linked list of interfaces and for each non-loopback interface
+     *  populate the index into the map with ifindex as the key and ip address
+     *  as the value
+     */
+    //struct sockaddr_in *ipaddr;
+    //in_addr_t ifip;
     int lo_count = 0;
-    for(intf = 0; intf < intf_count; intf++)
+    while (address)
     {
-        struct ifreq *entry = &ifrq[intf];
-        if ((struct sockaddr_in *)&entry)
+        if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
-            get_index(entry->ifr_name, &idx);
-            if((idx >= MAX_IF_ENTRIES) && strncmp(entry->ifr_name,"tun", 3)){
+            get_index(address->ifa_name, &idx);
+            if(idx >= MAX_IF_ENTRIES && strncmp(address->ifa_name,"tun", 3)){
+                address = address->ifa_next;
                 continue;
             }
-	    if(!strncmp(entry->ifr_name,"lo", 2))
+            /*if (strncmp(address->ifa_name, "lo", 2))
             {
+                ipaddr = (struct sockaddr_in *)address->ifa_addr;
+                ifip = ipaddr->sin_addr.s_addr;
+            }*/
+            else
+            {
+                //ifip = 0x0100007f;
                 lo_count++;
-                if((idx == 1) && lo_count > 1){
-                    continue;
-                }
-            }
-            if(!strncmp(entry->ifr_name, "tun", 3) && (tun || per_interface || ssh_disable)){
-                if(per_interface && !strncmp(prefix_interface, "tun", 3)){
-                    printf("zfw does not allow setting on tun interfaces!\n");
-                }
-                if(tun && !strncmp(tun_interface, "tun", 3)){
-                    printf("zfw does not allow setting on tun interfaces!\n");
-                }
-                if(ssh_disable && !strncmp(ssh_interface, "tun", 3)){
-                    printf("zfw does not allow setting on tun interfaces!\n");
-                }
-                continue;
             }
             if (all_interface)
             {
-                echo_interface = entry->ifr_name;
-                verbose_interface = entry->ifr_name;
-                prefix_interface = entry->ifr_name;
-                ssh_interface = entry->ifr_name;
-                diag_interface = entry->ifr_name;
-                tun_interface = entry->ifr_name;
+                echo_interface = address->ifa_name;
+                verbose_interface = address->ifa_name;
+                prefix_interface = address->ifa_name;
+                ssh_interface = address->ifa_name;
+                diag_interface = address->ifa_name;
+                tun_interface = address->ifa_name;
             }
-            if (echo && strncmp(entry->ifr_name,"tun", 3))
+            if (echo && !(idx == 1) && strncmp(address->ifa_name,"tun", 3))
             {
-                if (!strcmp(echo_interface, entry->ifr_name))
+                if (!strcmp(echo_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
             }
-
-            if (verbose)
+            else if (echo && !strcmp(echo_interface, "lo") && (idx == 1) &&
+             lo_count == 1 && strncmp(address->ifa_name,"tun", 3))
             {
-                if(!strncmp(entry->ifr_name, "tun", 3) && !strncmp(verbose_interface,"tun", 3)){
+                set_diag(&idx);
+            }
+
+            if (verbose && !((idx == 1) && lo_count > 1))
+            {
+                if(!strncmp(address->ifa_name, "tun", 3) && !strncmp(verbose_interface,"tun", 3)){
                     set_tun_diag();
                 }
-                else if(!strcmp(verbose_interface, entry->ifr_name))
+                else if(!strcmp(verbose_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
             }
 
-            if (tun)
+            if (tun && !((idx == 1) && lo_count > 1) && strncmp(address->ifa_name,"tun", 3))
             {
-                if (!strcmp(tun_interface, entry->ifr_name))
+                if (!strcmp(tun_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
             }
 
-            if (per_interface)
+            if (per_interface && !((idx == 1) && lo_count > 1) && strncmp(address->ifa_name,"tun", 3))
             {
-                if (!strcmp(prefix_interface, entry->ifr_name))
+                if (!strcmp(prefix_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
             }
 
-            if (list_diag)
+            if (list_diag && !((idx == 1) && lo_count > 1))
             {
-                if(!strncmp(entry->ifr_name, "tun", 3) && !strncmp(diag_interface,"tun", 3)){
+                if(!strncmp(address->ifa_name, "tun", 3) && !strncmp(diag_interface,"tun", 3)){
                     set_tun_diag();
                 }
-                else if (!strcmp(diag_interface, entry->ifr_name))
+                else if (!strcmp(diag_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
             }
 
-            if (ssh_disable)
+            if (ssh_disable && !(idx == 1) && strncmp(address->ifa_name,"tun", 3))
             {
-                if (!strcmp(ssh_interface, entry->ifr_name))
+                if (!strcmp(ssh_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
+            }
+            else if (ssh_disable && !strcmp(ssh_interface, "lo") && (idx == 1) && (lo_count == 1) 
+            && strncmp(address->ifa_name,"tun", 3))
+            {
+                set_diag(&idx);
             }
             if (access(diag_map_path, F_OK) != 0)
             {
                 ebpf_usage();
             }
         }
+        address = address->ifa_next;
     }
-    close(sk);
+    freeifaddrs(addrs);
 }
 
 int get_ifindex_map(uint32_t *idx){
@@ -1223,30 +1206,20 @@ bool interface_map()
     if(tun_fd == -1){
         open_tun_map();
     }
-    
-    char if_buf[(BPF_MAX_ENTRIES + MAX_IF_ENTRIES) * sizeof(struct ifreq)];
-    struct ifconf ifcnf;
-    struct ifreq *ifrq;
-    int           sk;
-    int           intf_count;
-    int           intf;
-    sk = socket(AF_INET, SOCK_DGRAM, 0);
-    if(sk < 0)
+    struct ifaddrs *addrs;
+    /* call function to get a linked list of interface structs from system */
+    if (getifaddrs(&addrs) == -1)
     {
-        perror("socket");
-        return false;
+        printf("can't get addrs");
+        exit(1);
     }
-    ifcnf.ifc_len = sizeof(if_buf);
-    ifcnf.ifc_buf = if_buf;
-    if(ioctl(sk, SIOCGIFCONF, &ifcnf) < 0)
-    {
-        perror("ioctl(SIOCGIFCONF)");
-        close(sk);
-        return false;
-    }
-    ifrq = ifcnf.ifc_req;
-    intf_count = ifcnf.ifc_len / sizeof(struct ifreq);
+    struct ifaddrs *address = addrs;
     uint32_t idx = 0;
+    /*
+     * traverse linked list of interfaces and for each non-loopback interface
+     *  populate the index into the map with ifindex as the key and ip address
+     *  as the value
+     */
     int lo_count = 0;
     struct sockaddr_in *ipaddr;
     in_addr_t ifip;
@@ -1277,20 +1250,20 @@ bool interface_map()
             }
         }
     }
-    for(intf = 0; intf < intf_count; intf++)
+    while (address)
     {
-        struct ifreq *entry = &ifrq[intf];
-        if ((struct sockaddr_in *)&entry)
+        if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
-            get_index(entry->ifr_name, &idx);
-            if((idx >= MAX_IF_ENTRIES) && strncmp(entry->ifr_name,"tun", 3)){
+            get_index(address->ifa_name, &idx);
+            if((idx >= MAX_IF_ENTRIES) && strncmp(address->ifa_name,"tun", 3)){
+                address = address->ifa_next;
                 continue;
             }
-            if (strncmp(entry->ifr_name, "lo", 2))
+            if (strncmp(address->ifa_name, "lo", 2))
             {
-                ipaddr = (struct sockaddr_in *)&entry->ifr_addr;
+                ipaddr = (struct sockaddr_in *)address->ifa_addr;
                 ifip = ipaddr->sin_addr.s_addr;
-                struct sockaddr_in *network_mask = (struct sockaddr_in *)&entry->ifr_netmask;
+                struct sockaddr_in *network_mask = (struct sockaddr_in *)address->ifa_netmask;
                 __u32 netmask = ntohl(network_mask->sin_addr.s_addr);
                 ipcheck = is_subset(ntohl(ifip), netmask, ntohl(dcidr.s_addr));
                 if (!ipcheck)
@@ -1302,12 +1275,9 @@ bool interface_map()
             {
                 ifip = 0x0100007f;
                 lo_count++;
-                if((idx == 1) && lo_count > 1){
-                    continue;
-                }
             }
-            if((idx < MAX_IF_ENTRIES) && strncmp(entry->ifr_name,"tun", 3)){
-                add_if_index(&idx, ifip, entry->ifr_name);
+            if((idx < MAX_IF_ENTRIES) && strncmp(address->ifa_name,"tun", 3) && !((idx == 1) && lo_count > 1)){
+                add_if_index(&idx, ifip, address->ifa_name);
             }
 
             if(ifip == tunip)
@@ -1332,8 +1302,8 @@ bool interface_map()
                         sprintf(o_iftun.mask, "%s", tunmask);
                         change_detected =true;
                     }
-                    if(strcmp(o_iftun.ifname, entry->ifr_name)){
-                        sprintf(o_iftun.ifname, "%s", entry->ifr_name);
+                    if(strcmp(o_iftun.ifname, address->ifa_name)){
+                        sprintf(o_iftun.ifname, "%s", address->ifa_name);
                         change_detected =true;
                     }
                     uint32_t tun_net_integer = ntohl(ifip) & bits2Mask(len2u16(tunmask));
@@ -1351,16 +1321,16 @@ bool interface_map()
                         if (ret)
                         {
                             printf("MAP_UPDATE_ELEM: %s \n", strerror(errno));
-                            close(sk);
-                            return false;
+                            return 1;
                         }
                         
                     }
                 }
             }
         }
+        address = address->ifa_next;
     }
-    close(sk);
+    freeifaddrs(addrs);
     return create_route;
 }
 
