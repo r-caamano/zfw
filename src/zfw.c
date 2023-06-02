@@ -111,7 +111,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.2.2";
+const char *argp_program_version = "0.2.4";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -389,8 +389,9 @@ int get_index(char *name, uint32_t *idx)
     struct ifreq irequest;
 
     fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-    if (fd == -1)
-        return errno;
+    if (fd == -1){
+        return -1;
+    }
 
     strncpy(irequest.ifr_name, name, IF_NAMESIZE);
     if (ioctl(fd, SIOCGIFINDEX, &irequest) == -1)
@@ -399,11 +400,11 @@ int get_index(char *name, uint32_t *idx)
         {
             result = close(fd);
         } while (result == -1 && errno == EINTR);
-        return errno = ENOENT;
+        return -1;
     }
-
+    
     *idx = irequest.ifr_ifindex;
-
+    close(fd);
     return 0;
 }
 
@@ -964,20 +965,33 @@ void interface_tc()
     {
         if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
-            get_index(address->ifa_name, &idx);
-            if(!strncmp(address->ifa_name,"tun", 3) || idx >= MAX_IF_ENTRIES){
+            int index_check = get_index(address->ifa_name, &idx);
+            if(index_check){
+                printf("unable to get interface index fd!\n");
+                address = address->ifa_next;
+                continue;
+            }
+            if(!strncmp(address->ifa_name,"tun", 3) || idx >= MAX_IF_ENTRIES)
+            {
+                if(!strncmp(tc_interface,"tun", 3)){
+                    printf("zfw does not allow tc filters on tun interfaces!\n");
+                }
                 address = address->ifa_next;
                 continue;
             }
             if (!strncmp(address->ifa_name, "lo", 2))
             {
                 lo_count++;
+                if(lo_count > 1){
+                    address = address->ifa_next;
+                    continue;
+                }
             }
             if (all_interface)
             {
                 tc_interface = address->ifa_name;
             }
-            if ((tc | tcfilter) && !((idx == 1) && lo_count > 1))
+            if (tc || tcfilter)
             {
                 if (!strcmp(tc_interface, address->ifa_name))
                 {
@@ -1035,32 +1049,33 @@ void interface_diag()
     }
     struct ifaddrs *address = addrs;
     uint32_t idx = 0;
+    int lo_count = 0;
     /*
      * traverse linked list of interfaces and for each non-loopback interface
      *  populate the index into the map with ifindex as the key and ip address
      *  as the value
      */
-    //struct sockaddr_in *ipaddr;
-    //in_addr_t ifip;
-    int lo_count = 0;
     while (address)
     {
         if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
-            get_index(address->ifa_name, &idx);
+            int index_check = get_index(address->ifa_name, &idx);
+            if(index_check){
+                printf("unable to get interface index fd!\n");
+                address = address->ifa_next;
+                continue;
+            }
             if(idx >= MAX_IF_ENTRIES && strncmp(address->ifa_name,"tun", 3)){
                 address = address->ifa_next;
                 continue;
             }
-            /*if (strncmp(address->ifa_name, "lo", 2))
+            if(!strncmp(address->ifa_name, "lo", 2))
             {
-                ipaddr = (struct sockaddr_in *)address->ifa_addr;
-                ifip = ipaddr->sin_addr.s_addr;
-            }*/
-            else
-            {
-                //ifip = 0x0100007f;
                 lo_count++;
+                if(lo_count > 1){
+                    address = address->ifa_next;
+                    continue;
+                }
             }
             if (all_interface)
             {
@@ -1071,20 +1086,31 @@ void interface_diag()
                 diag_interface = address->ifa_name;
                 tun_interface = address->ifa_name;
             }
-            if (echo && !(idx == 1) && strncmp(address->ifa_name,"tun", 3))
+            if(!strncmp(address->ifa_name, "tun", 3) && (tun || per_interface || ssh_disable || echo)){
+                if(per_interface && !strncmp(prefix_interface, "tun", 3)){
+                    printf("%s:zfw does not allow setting on tun interfaces!\n", address->ifa_name);
+                }
+                if(tun && !strncmp(tun_interface, "tun", 3)){
+                    printf("%s:zfw does not allow setting on tun interfaces!\n", address->ifa_name);
+                }
+                if(ssh_disable && !strncmp(ssh_interface, "tun", 3)){
+                    printf("%s:zfw does not allow setting on tun interfaces!\n", address->ifa_name);
+                }
+                if(echo && !strncmp(echo_interface, "tun", 3)){
+                    printf("%s:zfw does not allow setting on tun interfaces!\n", address->ifa_name);
+                }
+                address = address->ifa_next;
+                continue;
+            }
+            if (echo && strncmp(address->ifa_name,"tun", 3))
             {
                 if (!strcmp(echo_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
             }
-            else if (echo && !strcmp(echo_interface, "lo") && (idx == 1) &&
-             lo_count == 1 && strncmp(address->ifa_name,"tun", 3))
-            {
-                set_diag(&idx);
-            }
 
-            if (verbose && !((idx == 1) && lo_count > 1))
+            if (verbose)
             {
                 if(!strncmp(address->ifa_name, "tun", 3) && !strncmp(verbose_interface,"tun", 3)){
                     set_tun_diag();
@@ -1095,7 +1121,7 @@ void interface_diag()
                 }
             }
 
-            if (tun && !((idx == 1) && lo_count > 1) && strncmp(address->ifa_name,"tun", 3))
+            if (tun)
             {
                 if (!strcmp(tun_interface, address->ifa_name))
                 {
@@ -1103,7 +1129,7 @@ void interface_diag()
                 }
             }
 
-            if (per_interface && !((idx == 1) && lo_count > 1) && strncmp(address->ifa_name,"tun", 3))
+            if (per_interface)
             {
                 if (!strcmp(prefix_interface, address->ifa_name))
                 {
@@ -1111,7 +1137,7 @@ void interface_diag()
                 }
             }
 
-            if (list_diag && !((idx == 1) && lo_count > 1))
+            if (list_diag)
             {
                 if(!strncmp(address->ifa_name, "tun", 3) && !strncmp(diag_interface,"tun", 3)){
                     set_tun_diag();
@@ -1122,18 +1148,14 @@ void interface_diag()
                 }
             }
 
-            if (ssh_disable && !(idx == 1) && strncmp(address->ifa_name,"tun", 3))
+            if (ssh_disable)
             {
                 if (!strcmp(ssh_interface, address->ifa_name))
                 {
                     set_diag(&idx);
                 }
             }
-            else if (ssh_disable && !strcmp(ssh_interface, "lo") && (idx == 1) && (lo_count == 1) 
-            && strncmp(address->ifa_name,"tun", 3))
-            {
-                set_diag(&idx);
-            }
+
             if (access(diag_map_path, F_OK) != 0)
             {
                 ebpf_usage();
@@ -1215,11 +1237,6 @@ bool interface_map()
     }
     struct ifaddrs *address = addrs;
     uint32_t idx = 0;
-    /*
-     * traverse linked list of interfaces and for each non-loopback interface
-     *  populate the index into the map with ifindex as the key and ip address
-     *  as the value
-     */
     int lo_count = 0;
     struct sockaddr_in *ipaddr;
     in_addr_t ifip;
@@ -1250,11 +1267,21 @@ bool interface_map()
             }
         }
     }
+    /*
+     * traverse linked list of interfaces and for each non-loopback interface
+     *  populate the index into the map with ifindex as the key and ip address
+     *  as the value
+     */
     while (address)
     {
         if (address->ifa_addr && (address->ifa_addr->sa_family == AF_INET))
         {
-            get_index(address->ifa_name, &idx);
+            int index_check = get_index(address->ifa_name, &idx);
+            if(index_check){
+                printf("unable to get interface index fd!\n");
+                address = address->ifa_next;
+                continue;
+            }
             if((idx >= MAX_IF_ENTRIES) && strncmp(address->ifa_name,"tun", 3)){
                 address = address->ifa_next;
                 continue;
@@ -1275,8 +1302,12 @@ bool interface_map()
             {
                 ifip = 0x0100007f;
                 lo_count++;
+                if(lo_count > 1){
+                    address = address->ifa_next;
+                    continue;
+                }
             }
-            if((idx < MAX_IF_ENTRIES) && strncmp(address->ifa_name,"tun", 3) && !((idx == 1) && lo_count > 1)){
+            if((idx < MAX_IF_ENTRIES) && strncmp(address->ifa_name,"tun", 3)){
                 add_if_index(&idx, ifip, address->ifa_name);
             }
 
