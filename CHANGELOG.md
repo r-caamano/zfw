@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.2.3] - 2023-05-31
+
+###
+
+- Refactored/Cleaned up all interface enumeration functions. Fixed file descriptor leak in get_index().
+- Minor update to README regarding transparency.
+
+
 # [0.2.2] - 2023-05-31
 
 ###
@@ -17,6 +25,7 @@ All notable changes to this project will be documented in this file. The format 
 
 - Changed in operation of transparency route unbinding.  In order to allow internal tunneler connections
   over ziti the default operation has been set to not delete any tunX link routes. This will disable the ability to support transparency on some architectures.  There is now an environmental variable TRANSPARENT_MODE='true' that can be set in the /opt/openziti/etc/ziti-edge-tunnel.env file to enable deletion of tun routes if bi-directional transparency is required at the expense of disabling internal tunneler interception.
+
 
 # [0.2.0] - 2023-05-29
 
