@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.2.5] - 2023-06-05
+
+###
+
+- Refactored zfw.c to include <linux/if.h> vs <net/if.h> for consistency.
+- Refactored zfw_tc_ingress.c and zfw_tc_ingress.c added final seq/ack tracking to more accurately determine
+  tcp session termination.
+- Updated README with link to build openziti network and install ziti-edge-tunnel
+
 # [0.2.4] - 2023-06-02
 
 ###

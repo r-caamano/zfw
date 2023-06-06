@@ -102,12 +102,16 @@ struct tun_key {
 /*Value to tcp_map*/
 struct tcp_state {
     unsigned long long tstamp;
-    int syn;
-    int sfin;
-    int cfin;
-    int ack;
-    int rst;
-    int est;
+    __u32 sfseq;
+    __u32 cfseq;
+    __u8 syn;
+    __u8 sfin;
+    __u8 cfin;
+    __u8 sfack;
+    __u8 cfack;
+    __u8 ack;
+    __u8 rst;
+    __u8 est;
 };
 
 /*Value to udp_map*/
@@ -467,16 +471,16 @@ static struct bpf_sock_tuple *get_tuple(struct __sk_buff *skb, __u64 nh_off,
                     }
                     return NULL;
                 }
-                int gen_ver  = genhdr[0] & 0xC0 >> 6;
-                int gen_hdr_len = genhdr[0] & 0x3F;
+                __u32 gen_ver  = genhdr[0] & 0xC0 >> 6;
+                __u32 gen_hdr_len = genhdr[0] & 0x3F;
                 if(local_diag->verbose){
-                    bpf_printk("Received Geneve version is %d", gen_ver);
-                    bpf_printk("Received Geneve header length is %d bytes", gen_hdr_len * 4);
+                    bpf_printk("Received Geneve version is %u", gen_ver);
+                    bpf_printk("Received Geneve header length is %u bytes", gen_hdr_len * 4);
                 }
                 /* if the length is not equal to 32 bytes and version 0 */
                 if ((gen_hdr_len != AWS_GNV_HDR_OPT_LEN / 4) || (gen_ver != GENEVE_VER)){
                     if(local_diag->verbose){
-                        bpf_printk("Geneve header length:version error %d:%d", gen_hdr_len * 4, gen_ver);
+                        bpf_printk("Geneve header length:version error %u:%u", gen_hdr_len * 4, gen_ver);
                     }
                     return NULL;
                 }
@@ -491,7 +495,7 @@ static struct bpf_sock_tuple *get_tuple(struct __sk_buff *skb, __u64 nh_off,
                     return NULL;
                 }
                 if(local_diag->verbose){
-                    bpf_printk("SKB DATA LENGTH AFTER=%d", skb->len);
+                    bpf_printk("SKB DATA LENGTH AFTER=%u", skb->len);
                 }
                 /* Initialize iph for after popping outer */
                 iph = (struct iphdr *)(skb->data + nh_off);
@@ -503,7 +507,7 @@ static struct bpf_sock_tuple *get_tuple(struct __sk_buff *skb, __u64 nh_off,
                 }
                 proto = iph->protocol;
                 if(local_diag->verbose){
-                    bpf_printk("INNER Protocol = %d", proto);
+                    bpf_printk("INNER Protocol = %u", proto);
                 }
             }
             /* set udp to true if inner is udp, and let all other inner protos to the next check point */
@@ -690,7 +694,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
                     tstate->tstamp = tstamp;
                     if(local_diag->verbose){
                         bpf_printk("ingress: received syn-ack from server: 0x%X :%d\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
-                        bpf_printk("forwarded syn-ack to client: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                        bpf_printk("forwarded syn-ack to client: 0x%X : %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                     }
                     return TC_ACT_OK;
                 }
@@ -698,9 +702,10 @@ int bpf_sk_splice(struct __sk_buff *skb){
                     if(tstate->est){
                         tstate->tstamp = tstamp;
                         tstate->sfin = 1;
+                        tstate->sfseq = tcph->seq;
                         if(local_diag->verbose){
-                            bpf_printk("ingress: received fin from Server: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
-                            bpf_printk("forwarded fin to client: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                            bpf_printk("ingress: received fin from Server: 0x%X:%u : fseq=%u\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport), tcph->seq);
+                            bpf_printk("forwarded fin to client: 0x%X : %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                         }
                         return TC_ACT_OK;
                     }
@@ -709,21 +714,41 @@ int bpf_sk_splice(struct __sk_buff *skb){
                     if(tstate->est){
                         del_tcp(tcp_state_key);
                         if(local_diag->verbose){
-                            bpf_printk("ingress: received rst from Server: 0x%X :%d\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
-                            bpf_printk("forwarded rst to client: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                            bpf_printk("ingress: received rst from Server: 0x%X :%u\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                            bpf_printk("forwarded rst to client: 0x%X : %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                         }
                         tstate = get_tcp(tcp_state_key);
                         if(!tstate){
                             if(local_diag->verbose){
-                                bpf_printk("removed tcp state established by client: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
-                                bpf_printk("to server: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                                bpf_printk("ingress: removed tcp state established by client: 0x%X : %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                                bpf_printk("to server: 0x%X:%u\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
                             }
                         }
                         return TC_ACT_OK;
                     }
                 }
                 else if(tcph->ack){
-                    if(tstate->est){
+                    if((tstate->est) && (tstate->sfin == 1) && (tstate->cfin == 1) && (bpf_htonl(tcph->ack_seq) == (bpf_htonl(tstate->cfseq) + 1))){
+                        del_tcp(tcp_state_key);
+                        if(local_diag->verbose){
+                            bpf_printk("ingress: received final ack from server: 0x%X: %u\n" , bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs  (tuple->ipv4.sport));
+                            bpf_printk("forwarded final ack to client 0x%X : %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                        }
+                        tstate = get_tcp(tcp_state_key);
+                        if(!tstate){
+                            if(local_diag->verbose){
+                                bpf_printk("ingress: removed state established by client: 0x%X: %u\n" , bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs  (tuple->ipv4.dport));
+                                bpf_printk("to server: 0x%X:%u\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport ));
+                            }
+                        }
+
+                    }
+                    else if((tstate->est) && (tstate->cfin == 1) && (bpf_htonl(tcph->ack_seq) == (bpf_htonl(tstate->cfseq) + 1))){
+                        tstate->sfack = 1;
+                        tstate->tstamp = tstamp;
+                        return TC_ACT_OK;
+                    }
+                    else if(tstate->est){
                         tstate->tstamp = tstamp;
                         return TC_ACT_OK;
                     }
@@ -747,8 +772,8 @@ int bpf_sk_splice(struct __sk_buff *skb){
             */
            if(sk->dst_ip4){
                 if(local_diag->verbose){
-                    bpf_printk("ingress: tuple matched active host initiated udp session remote server: 0x%X :%d\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
-                    bpf_printk("response to host: 0x%X : %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                    bpf_printk("ingress: tuple matched active host initiated udp session remote server: 0x%X :%u\n" ,bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                    bpf_printk("response to host: 0x%X : %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                 }
                 goto assign;
            }
@@ -765,15 +790,15 @@ int bpf_sk_splice(struct __sk_buff *skb){
                 /*if udp outbound state has been up for 30 seconds without traffic remove it from hashmap*/
                 if(tstamp > (ustate->tstamp + 30000000000)){
                     if(local_diag->verbose){
-                        bpf_printk("ingress: udp inbound matched expired state from server: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
-                        bpf_printk("to client: 0x%X: %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                        bpf_printk("ingress: udp inbound matched expired state from server: 0x%X:%u\n", bpf_ntohl(tuple->ipv4.saddr), bpf_ntohs(tuple->ipv4.sport));
+                        bpf_printk("to client: 0x%X: %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                     }
                     del_udp(udp_state_key);
                     ustate = get_udp(udp_state_key);
                     if(!ustate){
                         if(local_diag->verbose){
-                            bpf_printk("ingress: removed expired udp connection state for client: 0x%X:%d\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
-                            bpf_printk("to server: 0x%X: %d\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                            bpf_printk("ingress: removed expired udp connection state for client: 0x%X:%u\n", bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
+                            bpf_printk("to server: 0x%X: %u\n" ,bpf_ntohl(tuple->ipv4.daddr), bpf_ntohs(tuple->ipv4.dport));
                         }
                     }
                 }
@@ -1158,8 +1183,8 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                         bpf_printk("%s",local_ip4->ifname);
                         bpf_printk("source_ip = 0x%X",bpf_ntohl(tuple->ipv4.saddr));
                         bpf_printk("dest_ip = 0x%X",bpf_ntohl(tuple->ipv4.daddr));
-                        bpf_printk("protocol_id = %d",key.protocol);
-                        bpf_printk("tproxy_mapping->%d to %d\n",bpf_ntohs(tuple->ipv4.dport),
+                        bpf_printk("protocol_id = %u",key.protocol);
+                        bpf_printk("tproxy_mapping->%u to %u\n",bpf_ntohs(tuple->ipv4.dport),
                         bpf_ntohs(tproxy->port_mapping[port_key].tproxy_port));
                     }
                     /*check if interface is set for per interface rule awarness and if yes check if it is in the rules interface list.  If not in
@@ -1209,7 +1234,7 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                             struct ifindex_tun *tun_index = get_tun_index(0);
                             if(tun_index){
                                 if(local_diag->verbose){
-                                    bpf_printk("forwarding from: %s to %s %d", local_ip4->ifname, tun_index->ifname, tun_index->index);
+                                    bpf_printk("forwarding from: %s to %s %u", local_ip4->ifname, tun_index->ifname, tun_index->index);
                                 }
                                 return bpf_redirect(tun_index->index, 0);
                             }

@@ -28,7 +28,7 @@
 #include <linux/ethtool.h>
 #include <sys/ioctl.h>
 #include <netinet/ip.h>
-#include <net/if.h>
+#include <linux/if.h>
 #include <linux/sockios.h>
 #include <string.h>
 #include <errno.h>
@@ -41,7 +41,7 @@
 #define BPF_MAX_ENTRIES     100 // MAX # PREFIXES
 #endif
 #define MAX_INDEX_ENTRIES   100 // MAX port ranges per prefix
-#define MAX_TABLE_SIZE      65536  // PORT MApping table size
+#define MAX_TABLE_SIZE      65536  // PORT Mapping table size
 #define MAX_IF_LIST_ENTRIES 3
 #define MAX_IF_ENTRIES      30
 
@@ -111,7 +111,7 @@ static char *tun_interface;
 static char *tc_interface;
 static char *object_file;
 static char *direction_string;
-const char *argp_program_version = "0.2.4";
+const char *argp_program_version = "0.2.5";
 
 static __u8 if_list[MAX_IF_LIST_ENTRIES];
 int ifcount = 0;
@@ -128,13 +128,13 @@ void close_maps(int code);
 struct ifindex_ip4
 {
     uint32_t ipaddr;
-    char ifname[IF_NAMESIZE];
+    char ifname[IFNAMSIZ];
 };
 
 /*value to ifindex_tun_map*/
 struct ifindex_tun {
     uint32_t index;
-    char ifname[IF_NAMESIZE];
+    char ifname[IFNAMSIZ];
     char cidr[16];
     char mask[3];
     bool verbose;
@@ -393,7 +393,7 @@ int get_index(char *name, uint32_t *idx)
         return -1;
     }
 
-    strncpy(irequest.ifr_name, name, IF_NAMESIZE);
+    strncpy(irequest.ifr_name, name, IFNAMSIZ);
     if (ioctl(fd, SIOCGIFINDEX, &irequest) == -1)
     {
         do
@@ -588,7 +588,7 @@ void print_rule(struct tproxy_key *key, struct tproxy_tuple *tuple, int *rule_co
                 entry_exists = true;
                 *rule_count += 1;
             }
-            char interfaces[IF_NAMESIZE * MAX_IF_LIST_ENTRIES + 8] = "";
+            char interfaces[IFNAMSIZ * MAX_IF_LIST_ENTRIES + 8] = "";
             for (int i = 0; i < MAX_IF_LIST_ENTRIES; i++)
             {
                 if (tuple->port_mapping[tuple->index_table[x]].if_list[i])
@@ -620,7 +620,7 @@ void print_rule(struct tproxy_key *key, struct tproxy_tuple *tuple, int *rule_co
             {
                 printf("%-11s\t%-3s\t%-20s\t%-32s%-17s\t%s to %-20s", "PASSTHRU", proto, scidr_block, dcidr_block,
                        dpts, "PASSTHRU", dcidr_block);
-                char interfaces[IF_NAMESIZE * MAX_IF_LIST_ENTRIES + 8] = "";
+                char interfaces[IFNAMSIZ * MAX_IF_LIST_ENTRIES + 8] = "";
                 for (int i = 0; i < MAX_IF_LIST_ENTRIES; i++)
                 {
                     if (tuple->port_mapping[tuple->index_table[x]].if_list[i])
@@ -663,7 +663,7 @@ void print_rule(struct tproxy_key *key, struct tproxy_tuple *tuple, int *rule_co
                 printf("%-11s\t%-3s\t%-20s\t%-32s%-17s\t%s to %-20s", "PASSTHRU", proto, scidr_block, dcidr_block,
                        dpts, "PASSTHRU", dcidr_block);
             }
-            char interfaces[IF_NAMESIZE * MAX_IF_LIST_ENTRIES + 8] = "";
+            char interfaces[IFNAMSIZ * MAX_IF_LIST_ENTRIES + 8] = "";
             for (int i = 0; i < MAX_IF_LIST_ENTRIES; i++)
             {
                 if (tuple->port_mapping[tuple->index_table[x]].if_list[i])
