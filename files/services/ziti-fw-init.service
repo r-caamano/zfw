@@ -6,7 +6,7 @@ after=network.target
 [Service]
 User=root
 WorkingDirectory=/opt/openziti/bin
-ExecStart=/opt/openziti/bin/start_ebpf.py
+ExecStart=/opt/openziti/bin/start_ebpf_tunnel.py
 RestartSec=5
 Restart=on-failure
 TimeoutStartSec=60
