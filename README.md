@@ -216,7 +216,7 @@ sudo vi /opt/openziti/etc/ebpf_config.json
 The above JSON sets up ens33 to be an internal interface (No outbound tracking) and ens33 as an external interface
 with outbound tracking (Default for External Interface).  It also automatically adds runs the sudo zfw -P ens33 so ens33
 (default for ExternalInterfaces) which requires -N to add inbound rules to it and will ignore rules where it is not in the interface list.
-Keys "OutboundPassThroughTrack" and "PerInterfaceRules" are shown with default values you only need to add them if you
+Keys "OutboundPassThroughTrack" and "PerInterfaceRules" are shown with thier default values you only need to add them if you
 want change the default operation for the interface type.
 
 #### Single Interface config with ens33 facing lan local lan
