@@ -60,10 +60,10 @@ service = False
 if(os.path.exists('/etc/systemd/system/ziti-router.service')):
     unconfigured = os.system("grep -r 'ExecStartPre\=\-\/opt/openziti\/bin\/start_ebpf_router.py' /etc/systemd/system/ziti-router.service")
     if(not unconfigured):
-        test1 = os.system("sed -i 's/#ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/ExecStartPre\=-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/g' /etc/systemd/system/ziti-router.service")
-        test2 = os.system("sed -i 's/#ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/g' /etc/systemd/system/ziti-router.service")
-        test3 = os.system("sed -i '/ExecStartPre\=\-\/opt\/openziti\/bin\/start_ebpf_router.py/d' /etc/systemd/system/ziti-router.service")
-        if((not test1) & (not test2) & (not test3)):
+        os.system("sed -i 's/#ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/ExecStartPre\=-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/g' /etc/systemd/system/ziti-router.service")
+        os.system("sed -i 's/#ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/g' /etc/systemd/system/ziti-router.service")
+        test1 = os.system("sed -i '/ExecStartPre\=\-\/opt\/openziti\/bin\/start_ebpf_router.py/d' /etc/systemd/system/ziti-router.service")
+        if(not test1):
             test1 = os.system("systemctl daemon-reload")
             if(not test1):
                 service = True

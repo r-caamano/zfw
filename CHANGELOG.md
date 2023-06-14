@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.3.3] - 2023-06-14
+
+###
+
+- Refactored to start_ebpf_router.py to add ziti-router listen ports as passthrough zfw rules on in /user/openziti/bin/user/user_rules.sh for both CloudZiti and
+  OpenZiti deployed ziti-routers. 
+- Refactored start_ebpf_router.py and revert_ebpf_router.py scripts ziti-router.service auto-edits to key on only the router service for entry 
+  for both start and revert respectfully.
+
 # [0.3.2] - 2023-06-13
 
 ###
