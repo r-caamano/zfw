@@ -15,6 +15,87 @@ def tc_status(interface, direction):
     else:
         return False
 
+def get_resolver():
+    process = subprocess.Popen(['grep', 'resolver:', '/opt/openziti/ziti-router/config.yml'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    data = out.decode()
+    if(len(err)):
+        return ''
+    data = out.decode()
+    raw = data.split(':')
+    if(len(raw)):
+       port= raw[-1].strip()
+       try:
+           int(port)
+           return port
+       except:
+           return ''
+    else:
+        return ''
+
+def get_edge_listener():
+    in_edge = False
+    if(os.path.exists('/opt/openziti/ziti-router/config.yml')):
+        with open('/opt/openziti/ziti-router/config.yml', 'r') as cfile:
+           for line in cfile:
+               if(line.find("binding: proxy") >= 0):
+                   in_edge = False
+               if(line.find("binding: edge") >= 0):
+                   in_edge = True
+               if(in_edge):
+                  if(line.find("address:") >= 0):
+                      address = line.split(':')
+                      if(len(address)):
+                          port = address[-1].strip()
+                          try:
+                              int(port)
+                              return port
+                          except:
+                              return ''
+    return ''
+
+def get_health_check_listener():
+    in_hc = False
+    if(os.path.exists('/opt/openziti/ziti-router/config.yml')):
+        with open('/opt/openziti/ziti-router/config.yml', 'r') as cfile:
+           for line in cfile:
+               if(line.find("apis:") >= 0):
+                   in_hc = False
+               if(line.find("name: health-check") >= 0):
+                   in_hc = True
+               if(in_hc):
+                  if(line.find("address:") >= 0):
+                      address = line.split(':')
+                      if(len(address)):
+                          port = address[-1].strip()
+                          try:
+                              int(port)
+                              return port
+                          except:
+                              return ''
+    return ''
+
+def get_link_listener():
+    in_link = False
+    if(os.path.exists('/opt/openziti/ziti-router/config.yml')):
+        with open('/opt/openziti/ziti-router/config.yml', 'r') as cfile:
+           for line in cfile:
+               if(line.find("healthChecks:") >= 0):
+                   in_link = False
+               if(line.find("link:") >= 0):
+                   in_link = True
+               if(in_link):
+                  if(line.find("bind:") >= 0):
+                      address = line.split(':')
+                      if(len(address)):
+                          port = address[-1].strip()
+                          try:
+                              int(port)
+                              return port
+                          except:
+                              return ''
+    return ''
+
 def get_lanIf():
     process = subprocess.Popen(['grep', 'lanIf:', '/opt/openziti/ziti-router/config.yml'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = process.communicate()
@@ -44,47 +125,53 @@ def get_if_ip(intf):
 def set_local_rules(resolver):
     if(os.path.exists('/opt/openziti/bin/user/user_rules.sh.sample')):
         shutil.copy('/opt/openziti/bin/user/user_rules.sh.sample', '/opt/openziti/bin/user/user_rules.sh')
-        path = '/opt/openziti/ziti-router/ufw_save_file.txt'
-        if(os.path.exists(path)):
-            with open(path) as ufw_file:
-                with open('/opt/openziti/bin/user/user_rules.sh','a') as user_file:
-                    for line in ufw_file:
-                        data = line.split(' ')
-                        if(len(data)):
-                            default_cidr = '0.0.0.0/0'
-                            default_ip = '0.0.0.0'
-                            default_mask = '0'
-                            port = data[5]
-                            proto = data[7]
-                            if(data[1] != default_cidr):
-                                origin_ip = data[1].split('/')[0]
-                                origin_mask = data[1].split('/')[1]
-                                if(len(resolver.split('/'))):
-                                    lan_ip = resolver.split('/')[0]
-                                    lan_mask = resolver.split('/')[1]
-                                else:
-                                    lan_ip = default_cidr
-                                    lan_mask = default_mask
-                                user_file.write('/opt/openziti/bin/zfw -I -c ' + lan_ip + ' -m ' + lan_mask + ' -o ' + origin_ip + ' -n ' + origin_mask + ' -l ' + port + ' -h ' + port + ' -t 0  -p ' + proto + '\n')
-                            else:
-                                user_file.write('/opt/openziti/bin/zfw -I -c ' + default_ip + ' -m ' + default_mask + ' -l ' + port + ' -h ' + port + ' -t 0  -p ' + proto + '\n')
-                        else:
-                            print('Skipping invalid rule: ' + line)
+        if(os.path.exists('/opt/openziti/bin/user/user_rules.sh')):
+            with open('/opt/openziti/bin/user/user_rules.sh','a') as user_file:
+               default_cidr = '0.0.0.0/0'
+               default_ip = '0.0.0.0'
+               default_mask = '0'
+               edge_port = get_edge_listener()
+               health_port = get_health_check_listener()
+               link_port = get_link_listener()
+               resolver_port = get_resolver()
+               if(len(resolver.split('/'))):
+                   lan_ip = resolver.split('/')[0]
+                   lan_mask = resolver.split('/')[1]
+               else:
+                   lan_ip = default_cidr
+                   lan_mask = default_mask
+               if(len(edge_port)):
+                   print("edge_port=",edge_port)
+                   user_file.write('/opt/openziti/bin/zfw -I -c ' + default_ip + ' -m ' + default_mask + ' -l ' + edge_port + ' -h ' + edge_port + ' -t 0  -p tcp\n')
+               if(len(link_port)):
+                   print("link_port=",link_port)
+                   user_file.write('/opt/openziti/bin/zfw -I -c ' + default_ip + ' -m ' + default_mask + ' -l ' + link_port + ' -h ' + link_port + ' -t 0  -p tcp\n')
+               if(len(health_port)):
+                   print("health_port=", health_port)
+                   user_file.write('/opt/openziti/bin/zfw -I -c ' + lan_ip + ' -m ' + lan_mask + ' -l ' + health_port + ' -h ' + health_port + ' -t 0  -p tcp\n')
+               if(len(resolver_port)):
+                   print("resolver_port=", resolver_port)
+                   user_file.write('/opt/openziti/bin/zfw -I -c ' + lan_ip + ' -m ' + lan_mask + ' -l ' + resolver_port + ' -h ' + resolver_port + ' -t 0  -p tcp\n')
+                   user_file.write('/opt/openziti/bin/zfw -I -c ' + lan_ip + ' -m ' + lan_mask + ' -l ' + resolver_port + ' -h ' + resolver_port + ' -t 0  -p udp\n')
+        else:
+            print('File not created:', '/opt/openziti/bin/user/user_rules.sh')
     else:
-        print('File not found:', path)
+        print('File not found:', '/opt/openziti/bin/user/user_rules.sh.sample')
 
+netfoundry = False
 if(os.path.exists('/opt/netfoundry/ziti/ziti-router/config.yml')):
+    netfoundry = True
     print("Detected Netfoundry install/registration!")
     if(not os.path.exists('/opt/openziti/ziti-router/config.yml')):
         print("Installing symlink from /opt/openziti/ziti-router to /opt/netfoundry/ziti/ziti-router!")
         os.symlink('/opt/netfoundry/ziti/ziti-router', '/opt/openziti/ziti-router')
-        resolver = get_if_ip(get_lanIf())
-        if(len(resolver)):
-            set_local_rules(resolver)
     else:
         print("Symlink found nothing to do!")
 
 lanIf = get_lanIf()
+resolver = get_if_ip(lanIf)
+if(len(resolver)):
+    set_local_rules(resolver)
 if(not len(lanIf)):
     print("Unable to retrieve LanIf!")
 else:
@@ -302,12 +389,16 @@ else:
 if(os.path.exists('/etc/systemd/system/ziti-router.service') & router_config):
     unconfigured = os.system("grep -r 'ExecStartPre\=\-\/opt/openziti\/bin\/start_ebpf_router.py' /etc/systemd/system/ziti-router.service")
     if(unconfigured):
-        test1 = os.system("sed -i 's/ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/#ExecStartPre\=-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/g' /etc/systemd/system/ziti-router.service")
-        test2 = os.system("sed -i 's/ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/#ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/g' /etc/systemd/system/ziti-router.service")
-        test3 = os.system("sed -i '/#ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/a ExecStartPre\=\-\/opt\/openziti\/bin\/start_ebpf_router.py' /etc/systemd/system/ziti-router.service")
-        if((not test1) & (not test2) & (not test3)):
+        os.system("sed -i 's/ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/#ExecStartPre\=-\/opt\/netfoundry\/ebpf\/objects\/etables \-F \-r/g' /etc/systemd/system/ziti-router.service")
+        os.system("sed -i 's/ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/#ExecStartPre\=\-\/opt\/netfoundry\/ebpf\/scripts\/tproxy_splicer_startup.sh/g' /etc/systemd/system/ziti-router.service")
+        test1 = 1
+        if(netfoundry):
+            test1 = os.system("sed -i '/ExecStart=\/opt\/netfoundry\/ziti\/ziti-router\/ziti router run \/opt\/netfoundry\/ziti\/ziti-router\/config.yml/i ExecStartPre\=\-\/opt\/openziti\/bin\/start_ebpf_router.py' /etc/systemd/system/ziti-router.service")
+        else:
+            test1 = os.system("sed -i '/ExecStart=\/opt\/openziti\/ziti-router\/ziti router run \/opt\/openziti\/ziti-router\/config.yml/i ExecStartPre\=\-\/opt\/openziti\/bin\/start_ebpf_router.py' /etc/systemd/system/ziti-router.service")
+        if(not test1):
             test1 = os.system("systemctl daemon-reload")
-            if(not test1 ):
+            if(not test1):
                 print("Successfully converted ziti-router.service. Restarting!")
                 os.system('systemctl restart ziti-router.service')
                 if(not os.system('systemctl is-active --quiet ziti-router.service')):
