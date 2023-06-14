@@ -216,7 +216,7 @@ sudo vi /opt/openziti/etc/ebpf_config.json
 The above JSON sets up ens33 to be an internal interface (No outbound tracking) and ens33 as an external interface
 with outbound tracking (Default for External Interface).  It also automatically adds runs the sudo zfw -P ens33 so ens33
 (default for ExternalInterfaces) which requires -N to add inbound rules to it and will ignore rules where it is not in the interface list.
-Keys "OutboundPassThroughTrack" and "PerInterfaceRules" are shown with default values you only need to add them if you
+Keys "OutboundPassThroughTrack" and "PerInterfaceRules" are shown with their default values, you only need to add them if you
 want change the default operation for the interface type.
 
 #### Single Interface config with ens33 facing lan local lan
@@ -278,7 +278,9 @@ sudo reboot
 ---
 ### User space manual configuration
 ziti-edge-tunnel/ziti-router will automatically populate rules for configured ziti services so the following is if
-you want to configure additional rules outside of the automated ones.
+you want to configure additional rules outside of the automated ones. zfw-tunnel will also auto-populate /opt/openziti/bin/user/user_rules.sh
+with listening ports in the config.yml.
+
 **Note the ```zfw-router_<version>_<arch>.deb``` will install an un-enabled service ```fw-init.service```. If you install the zfw-router package without an OpenZiti ziti-router installation and enable this service it will start the ebpf fw after reboot and load the commands from /opt/openziti/bin/user/user_rules.sh.  If you later decide to install ziti-router this service should be disabled and you should run ```/opt/openziti/bin/start_ebpf_router.py``` you will also need to manually copy the /opt/openziti/etc/ebpf_config.json.sample to ebpf_config.json and edit interface name**
 
 **(All commands listed in this section need to be put in /opt/openziti/bin/user/user_rules.shin order to survive reboot)**
