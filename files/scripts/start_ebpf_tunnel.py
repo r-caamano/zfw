@@ -45,7 +45,7 @@ if(os.path.exists('/opt/openziti/etc/ebpf_config.json')):
                                 else:
                                     per_interface_rules[interface["Name"]] = False;
                             else:
-                                print('Mandator key \"Name\" missing skipping internal interface entry!')
+                                print('Mandatory key \"Name\" missing skipping internal interface entry!')
                        
                 else:
                     print("No internal interfaces listed in /opt/openziti/etc/ebpf_config.json add at least one interface")
@@ -72,7 +72,7 @@ if(os.path.exists('/opt/openziti/etc/ebpf_config.json')):
                                 else:
                                     per_interface_rules[interface["Name"]] = True;
                             else:
-                                print('Mandator key \"Name\" missing skipping external interface entry!')
+                                print('Mandatory key \"Name\" missing skipping external interface entry!')
                 else:
                     print("No External interfaces listed in /opt/openziti/etc/ebpf_config.json")
         except Exception as e:
