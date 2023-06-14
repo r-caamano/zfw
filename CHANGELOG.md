@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.3.2] - 2023-06-13
+
+###
+
+- initial integration of ziti-router.  Changed package name for ziti-tunnel to zfw-tunnel. Added new package zfw-router.  Previous installs with
+  zfw package should remove package first then install new package i.e. sudo dpkg -P zfw && sudo dpkg -i zfw-tunnel_<ver>_<arch>.deb
+
 # [0.2.5] - 2023-06-05
 
 ###

@@ -2,39 +2,57 @@
 
 --- 
 This firewall application utilizes both tc-ebpf and xdp to provide stateful firewalling
-for an [openziti](https://docs.openziti.io/) ziti-edge-tunnel installation and is meant as a replacement for ufw at least for
-ingress filtering.  It can be used in conjunction with ufw's masquerade feature on a wan facing interface if
-the zfw_outbound_track.o is activated in the egress direction. It can also be used in conjunction with openziti
-edge-routers deb package / manual instructions not yet available but coming soon.
+for an [OpenZiti](https://docs.openziti.io/) ziti-edge-tunnel installation and is meant as a replacement for ufw for packet
+filtering.  It can be used in conjunction with ufw's masquerade feature on a wan facing interface if
+the zfw_outbound_track.o is activated in the egress direction. It can also be used in conjunction with OpenZiti
+edge-routers deb package.
 
 
 ## Build
 
 [To build zfw from source. Click here!](./BUILD.md)
 
-## Deployment 
+## Ziti-Edge-Tunnel Deployment 
 
 The program is designed to be deployed as systemd services if deployed via .deb package with
-an existing ziti-edge-tunnel(v21.0 +) on Ubuntu 22.04(amd64/arm64)service installation. If you don't currently
-have ziti-edge-tunnel installed and an operational openziti network built if not follow these 
+an existing ziti-edge-tunnel(v21.0 +) installation on Ubuntu 22.04(amd64/arm64)service installation. If you don't currently
+have ziti-edge-tunnel installed and an operational OpenZiti network built if not follow these 
 [instructions](https://docs.openziti.io/docs/guides/Local_Gateway/EdgeTunnel).
 
 
 - Install
+**pre 0.3.x installs should remove zfw package prior to install of 0.3.x i.e. 
 ```
-sudo dpkg -i zfw_<ver>_<arch>.deb
+sudo systemctl stop ziti-edge-tunnel.service
+sudo dpkg -P zfw
 ```
 
-files will be installed in the following directories.
+```
+sudo dpkg -i zfw-tunnel_<ver>_<arch>.deb
+```
+
+## Ziti-Router Deployment
+
+The program is designed to integrated into an existing Openziti ziti-router installation if ziti router has been deployed via ziti_auto_enroll
+ [instructions](https://docs.openziti.io/docs/guides/Local_Gateway/EdgeRouter). 
+
+ Install
+```
+sudo dpkg -i zfw-router_<ver>_<arch>.deb
+```
+
+**The following instructions pertain to both zfw-tunnel and zfw-router. Platform specific functions will be noted explicitly**
+
+Packages files will be installed in the following directories.
 ```
 /etc/systemd/system <systemd service files>  
 /usr/sbin <symbolic link to zfw executable>
 /opt/openziti/etc : <config files> 
 /opt/openziti/bin : <binary executables, executable scripts, binary object files>
-/opt/openziti/bin/user: <user configured rules>
+/opt/openziti/bin/user/: <user configured rules>
 ```
 Configure:
-- Edit interfaces
+- Edit interfaces (zfw-tunnel) note: ziti-router will automatically add lanIf: from config.yml
 ```
 sudo cp /opt/openziti/etc/ebpf_config.json.sample /opt/openziti/etc/ebpf_config.json
 sudo vi /opt/openziti/etc/ebpf_config.json
@@ -57,13 +75,19 @@ sudo cp /opt/openziti/bin/user/user_rules.sh.sample /opt/openziti/bin/user/user_
 sudo vi /opt/openziti/bin/user/user_rules.sh
 ```   
 
-- Enable services:
+- Enable services:(zfw-tunnel)
 ```  
 sudo systemctl enable ziti-fw-init.service
 sudo systemctl enable ziti-wrapper.service 
 sudo systemctl restart ziti-edge-tunnel.service 
 ```
-The Service will automatically configure ufw (if enabled) to hand off to ebpf on configured interface(s).  Exception is icmp
+
+- Enable services:(zfw-router)
+```  
+sudo /opt/openziti/bin/start_ebpf_router.py 
+```
+
+The Service/Scripts will automatically configure ufw (if enabled) to hand off to ebpf on configured interface(s).  Exception is icmp
 which must be manually enabled if it's been disabled in ufw.  
 
 /etc/ufw/before.rules:
@@ -78,7 +102,8 @@ sudo zfw -e ens33
 sudo systemctl restart ziti-wrapper.service 
 ```
 
-Verify running:
+
+Verify running: (zfw-tunnel)
 ```
 sudo zfw -L
 ```
@@ -92,6 +117,20 @@ TUNMODE    	tcp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535    
 TUNMODE    	udp	    0.0.0.0/0           100.64.0.0/10           dpts=1:65535     	TUNMODE redirect:tun0               []
 ```
 
+Verify running: (zfw-router)
+```
+sudo zfw -L
+```
+If running:
+```
+Assuming no services configured yet:
+
+target  	proto	origin              	destination                     mapping:                				 interface list                 
+--------	-----	-----------------	------------------		-------------------------------------------------------	-----------------
+Rule Count: 0
+prefix_tuple_count: 0 / 100000
+
+```
 
 If not running:
 ```
@@ -119,10 +158,10 @@ filter protocol all pref 6 bpf chain 0
 filter protocol all pref 6 bpf chain 0 handle 0x1 zfw_tc_ingress.o:[action/5] direct-action not_in_hw id 51 tag b7573c4cb901a5da
 ```    
 
-Services configured via the openziti controller for ingress on the running ziti-edge-tunnel identity will auto populate into
+Services configured via the openziti controller for ingress on the running ziti-edge-tunnel/ziti-router identity will auto populate into
 the firewall's inbound rule list.
 
-Also note xdp is enabled on the tunX interface that ziti-edge tunnel is attached to support functions like bi-directional 
+Also note for zfw-tunnel xdp is enabled on the tunX interface that ziti-edge tunnel is attached to support functions like bi-directional 
 ip transparency which would otherwise not be possible without this firewall/wrapper.
 
 You can verify this as follows:
@@ -167,8 +206,6 @@ a per-prefix-rules setting in the following manner via the zfw utility
 
 #### Two Interface config with ens33 facing internet and ens37 facing local lan
 
-**Note: Operation in v0.1.12 is different from previous versions and requires that an interface is only configured as**
- **either Internal or External and should not be configured as both.**
 ```
 sudo vi /opt/openziti/etc/ebpf_config.json
 ```
@@ -193,14 +230,23 @@ sudo vi /opt/openziti/etc/ebpf_config.json
 **Double check that your json formatting is correct since mistakes could render the firewall inoperable.**
 
 After editing disable zfw and restart ziti-edge-wrapper service
+ 
+(zfw-tunnel)
 ```
 sudo zfw -Q
-sudo /opt/openziti/bin/start_ebpf.py
-sudo systemctl restart ziti-edge-wrapper.service
+sudo /opt/openziti/bin/start_ebpf_tunnel.py
+sudo systemctl restart ziti-edge-wrapper.service 
 
 ```
 
-### Bidirectional Transparency
+(zfw-router)
+```
+sudo zfw -Q
+sudo systemctl restart ziti-router.service
+
+```
+
+### Ziti Edge Tunnel Bidirectional Transparency (zfw-tunnel only)
 
 In order to allow internal tunneler connections over ziti the default operation has been set to not delete any tunX link routes. This will disable the ability to support transparency on some architectures i.e. arm64.  There is now an environmental variable ```TRANSPARENT_MODE='true'``` that can be set in the ```/opt/openziti/etc/ziti-edge-tunnel.env``` file to enable deletion of tunX routes if bi-directional transparency is required at the expense of disabling internal tunneler interception.
 
@@ -209,17 +255,19 @@ In order to allow internal tunneler connections over ziti the default operation 
 Traffic from containers like docker appears just like passthrough traffic to ZFW so you configure it the same as described above for 
 normal external pass-through traffic.
 
-
-### Manually Detaching from interface:
-
-```bash
-sudo zfw --set-tc-filter <interface name>  --direction <ingress | egress> --disable
-```
-
-### Upgrading
+### Upgrading zfw-tunnel
 ```
 sudo systemctl stop ziti-wrapper.service
-sudo dpkg -i <zfw_<ver>_<arch>.deb
+sudo dpkg -i <zfw-tunnel_<ver>_<arch>.deb
+```
+After updating reboot the system 
+```
+sudo reboot
+```
+
+### Upgrading zfw-router
+```
+sudo dpkg -i <zfw-router_<ver>_<arch>.deb
 ```
 After updating reboot the system 
 ```
@@ -229,11 +277,11 @@ sudo reboot
 ## Ebpf Map User Space Management
 ---
 ### User space manual configuration
-ziti-edge tunnel will automatically populate rules for configured ziti services so the following is if
+ziti-edge-tunnel/ziti-router will automatically populate rules for configured ziti services so the following is if
 you want to configure additional rules outside of the automated ones.
+**Note the ```zfw-router_<version>_<arch>.deb``` will install an un-enabled service ```fw-init.service```. If you install the zfw-router package without an OpenZiti ziti-router installation and enable this service it will start the ebpf fw after reboot and load the commands from /opt/openziti/bin/user/user_rules.sh.  If you later decide to install ziti-router this service should be disabled and you should run ```/opt/openziti/bin/start_ebpf_router.py``` you will also need to manually copy the /opt/openziti/etc/ebpf_config.json.sample to ebpf_config.json and edit interface name**
 
-All commands listed in this section would need to be put in /opt/openziti/bin/user/user_rules.sh
-to survive reboot.
+**(All commands listed in this section need to be put in /opt/openziti/bin/user/user_rules.shin order to survive reboot)**
 
 ### ssh default operation
 By default ssh is enabled to pass through to the ip address of the attached interface from any source.
@@ -246,10 +294,9 @@ interface setting and can be set for all interfaces except loopback.  This would
 sudo zfw -x ens33
 ```
 
-### Inserting /Deleting rules
+### Inserting / Deleting rules
     
-The -t, --tproxy-port is has a dual purpose one it to signify the tproxy port used by openziti routers in tproxy mode and the other is to
-identify either local passthrough with value of 0 and the other is tunnel redirect mode with value of 65535.
+The -t, --tproxy-port is has a dual purpose one it to signify the tproxy port used by openziti routers in tproxy mode and the other is to identify either local passthrough with value of 0 and the other is tunnel redirect mode with value of 65535.
 
 - Example Insert
 If you disable default ssh handling with a device interface ip of 172.16.240.1 and you want to insert a user rule with source 
@@ -271,6 +318,8 @@ sudo zfw -D -c 172.16.240.1 -m 32 -o 10.1.1.1 -n 32  -p tcp -l 22
 ```
 sudo zfw -F
 ```
+
+### Debugging
 
 Example: Monitor ebpf trace messages
 
@@ -383,7 +432,13 @@ cidr                    :100.64.0.0
 mask                    :10
 --------------------------
 ```
-      
+
+Example Detaching bpf from interface:
+
+```
+sudo zfw --set-tc-filter <interface name>  --direction <ingress | egress> --disable
+```
+
 Example: Remove all tc-ebpf on router
 
 ```
@@ -402,5 +457,5 @@ removing /sys/fs/bpf/tc/globals/udp_map
 removing /sys/fs/bpf/tc//globals/matched_map
 removing /sys/fs/bpf/tc/globals/tcp_map
 ```
-### Openziti router setup:
--coming soon
+
+
