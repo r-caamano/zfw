@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
+# [0.3.6] - 2023-06-15
+
+###
+
+- Refactored auto-load of ziti-router config.yml port rules to dynamically enter rules when ziti-router.service is restarted or
+  the start_ebpf_router.py is executed.  Also refactored deb packages to install all scripts, zfw and zfw_tunnwrapper as only 
+  root executable.
+  
 # [0.3.5] - 2023-06-15
 
 ###
