@@ -180,7 +180,7 @@ expected output:
 The firewall can support subtending devices for two interface scenarios i.e.
 external and trusted.
 
-external inet <----> (ens33)[ebpf-router](ens37) <----> trusted clients
+external inet <----> (ens33)[ebpf-router](ens37) <----> trusted client(s)
 
 with zfw_tc_ingress.o applied ingress on ens33 and zfw_tc_oubound_track.o applied egress on ens33 the router will
 statefully track outbound udp and tcp connections on ens33 and allow the associated inbound traffic.  While
