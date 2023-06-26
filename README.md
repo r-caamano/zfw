@@ -21,7 +21,8 @@ have ziti-edge-tunnel installed and an operational OpenZiti network built if not
 
 
 - Install
-**pre 0.3.x installs should remove zfw package prior to install of 0.3.x i.e.** 
+  
+**pre 0.3.x installs should remove zfw package prior to install of 0.3.x** 
 ```
 sudo systemctl stop ziti-edge-tunnel.service
 sudo dpkg -P zfw
