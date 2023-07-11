@@ -632,7 +632,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
             else{
                 return TC_ACT_SHOT;
             }
-        }else if(local_diag && local_diag->vrrp)
+        }else if(vrrp && local_diag && local_diag->vrrp)
         {
             return TC_ACT_OK;
         }
