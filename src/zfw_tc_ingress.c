@@ -666,9 +666,7 @@ int bpf_sk_splice(struct __sk_buff *skb){
             }
             for(int x = 0; x < addresses; x++){
                 if((tuple->ipv4.daddr == local_ip4->ipaddr[x]) && !local_diag->ssh_disable){
-                    if(tcp && (bpf_ntohs(tuple->ipv4.dport) == 22)){
-                        return TC_ACT_OK;
-                    }
+                    return TC_ACT_OK;
                 }
             }
         }
