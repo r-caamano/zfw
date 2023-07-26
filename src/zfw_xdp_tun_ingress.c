@@ -177,6 +177,8 @@ int xdp_redirect_prog(struct xdp_md *ctx)
         INGRESS,
         0,
         0,
+        {0},
+        {0}
      };
    
     struct tun_key tun_state_key;

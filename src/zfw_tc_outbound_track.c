@@ -290,8 +290,8 @@ int bpf_sk_splice(struct __sk_buff *skb){
         EGRESS,
         0,
         0,
-        {},
-        {}
+        {0},
+        {0}
      };
 
     /*look up attached interface inbound diag status*/
