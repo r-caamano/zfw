@@ -1357,12 +1357,10 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                             }
                             struct ifindex_tun *tun_index = get_tun_index(0);
                             if(tun_index){
-                                if(local_diag->verbose){
-                                    memcpy(event.source, eth->h_source, 6);
-                                    memcpy(event.dest, eth->h_dest, 6); 
-                                    event.tun_ifindex = tun_index->index;
-                                    send_event(&event);
-                                }
+                                memcpy(event.source, eth->h_source, 6);
+                                memcpy(event.dest, eth->h_dest, 6);
+                                event.tun_ifindex = tun_index->index;
+                                send_event(&event);
                                 return bpf_redirect(tun_index->index, 0);
                             }
                         }
@@ -1412,12 +1410,10 @@ int bpf_sk_splice5(struct __sk_buff *skb){
                                 }
                                 struct ifindex_tun *tun_index = get_tun_index(0);
                                 if(tun_index){
-                                    if(local_diag->verbose){
-                                        memcpy(event.source, eth->h_source, 6);
-                                        memcpy(event.dest, eth->h_dest, 6); 
-                                        event.tun_ifindex = tun_index->index;
-                                        send_event(&event);
-                                    }
+                                    memcpy(event.source, eth->h_source, 6);
+                                    memcpy(event.dest, eth->h_dest, 6);
+                                    event.tun_ifindex = tun_index->index;
+                                    send_event(&event);
                                     return bpf_redirect(tun_index->index, 0);
                                 }
                                 

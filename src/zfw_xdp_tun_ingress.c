@@ -201,16 +201,14 @@ int xdp_redirect_prog(struct xdp_md *ctx)
         if (iph->ihl != 5){
             return XDP_PASS;
         }
-        if(tun_diag->verbose){
-            __u8 protocol = iph->protocol;
-            event.tun_ifindex = tus->ifindex;
-            event.proto = protocol;
-            event.saddr = iph->saddr;
-            event.daddr = iph->daddr;
-            memcpy(&event.source, &tus->dest, 6);
-            memcpy(&event.dest, &tus->source, 6);
-            send_event(&event);
-        }
+        __u8 protocol = iph->protocol;
+        event.tun_ifindex = tus->ifindex;
+        event.proto = protocol;
+        event.saddr = iph->saddr;
+        event.daddr = iph->daddr;
+        memcpy(&event.source, &tus->dest, 6);
+        memcpy(&event.dest, &tus->source, 6);
+        send_event(&event);
         memcpy(&eth->h_dest, &tus->source,6);
         memcpy(&eth->h_source, &tus->dest,6);
         unsigned short proto = bpf_htons(ETH_P_IP);
