@@ -27,6 +27,10 @@ then
    chmod 744 /opt/openziti/bin/revert_ebpf_router.py
    chmod 744 /opt/openziti/bin/user/user_rules.sh.sample
    chmod 744 /opt/openziti/bin/zfw
+   if [ ! -L "/usr/sbin/zfw" ]
+      then
+          ln -s /opt/openziti/bin/zfw /usr/sbin/zfw
+   fi
 elif [ $1 == "tunnel" ]
 then
    if [ -d "/opt/openziti/bin" ] && [ -d "/opt/openziti/etc" ]
