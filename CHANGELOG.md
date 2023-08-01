@@ -8,7 +8,10 @@ All notable changes to this project will be documented in this file. The format 
 ###
 
 - Added Makefile and install.sh in src folder to allow 
-  build via make. 
+  build via make.
+
+- Fixed issue where start_ebpf_router.py was not   
+  properly updating the ziti-router.service file.
 
 # [0.4.3] - 2023-07-25
 
