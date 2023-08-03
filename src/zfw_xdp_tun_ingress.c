@@ -196,10 +196,6 @@ int xdp_redirect_prog(struct xdp_md *ctx)
             if ((unsigned long)(iph + 1) > (unsigned long)ctx->data_end){
                     return XDP_PASS;
             }
-            /* ip options not allowed */
-            if (iph->ihl != 5){
-                return XDP_PASS;
-            }
             __u8 protocol = iph->protocol;
             if(protocol == IPPROTO_TCP){
                 struct tcphdr *tcph = (struct tcphdr *)((unsigned long)iph + sizeof(*iph));
