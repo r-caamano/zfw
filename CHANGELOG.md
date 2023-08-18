@@ -38,7 +38,7 @@ All notable changes to this project will be documented in this file. The format 
   properly updating the ziti-router.service file.
 
 # [0.4.3] - 2023-07-25
-
+ 
 ###
 
 -- Refactored monitoring to use ring buffer and removed all bpf_printk() helper calls
