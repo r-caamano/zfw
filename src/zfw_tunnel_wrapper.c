@@ -633,45 +633,6 @@ void enumerate_service(struct json_object *services_obj, char *action){
     }
 }
 
-int send_command(byte cmdbytes[], int cmd_length){
-    char ctrl_buffer[BUFFER_SIZE];
-    // send command to dump tunnel services to file
-    int ret = send(ctrl_socket, cmdbytes, cmd_length, 0);
-    if (ret == -1)
-    {
-        perror("write");
-        return -1;
-    }
-    memset(&ctrl_buffer, 0, BUFFER_SIZE);
-    ret = recv(ctrl_socket, ctrl_buffer, BUFFER_SIZE, 0);
-    if ((ret == -1) || (ret == 0))
-    {
-        perror("read");
-        return -1;
-    }
-    /* Ensure buffer is 0-terminated. */
-    ctrl_buffer[BUFFER_SIZE - 1] = '\0';
-    char *ctrl_jString = (char *)ctrl_buffer;
-    struct json_object *ctrl_jobj, *success;
-    ctrl_jobj = json_tokener_parse(ctrl_jString);
-    if (ctrl_jobj)
-    {
-        printf("%s\n", json_object_to_json_string_ext(ctrl_jobj, JSON_C_TO_STRING_PLAIN));
-        success = json_object_object_get(ctrl_jobj, "Success");
-    }
-    if (success)
-    {
-        char *result = (char *)json_object_to_json_string_ext(success, JSON_C_TO_STRING_PLAIN);
-        if (!strcmp("false", result))
-        {
-            printf("Command: Failure possible version mismatch\n");
-            return -1;
-        }
-    }
-    json_object_put(ctrl_jobj);
-    return 0;
-}
-
 void get_string(char source[4096], char dest[2048]){
     int count = 0;
     while((source[count] != '\n') && (count < 1023)){
@@ -767,13 +728,6 @@ int run(){
                     printf("%s\n\n",json_object_to_json_string_ext(event_jobj,JSON_C_TO_STRING_PLAIN));
                 }
                 if(!strcmp("status", operation)){
-                    //printf("Received Status Event\n");
-                    // send command to dump tunnel services to file
-                    ret = send_command(cmdbytes, sizeof(cmdbytes));
-                    if (ret == -1)
-                    {
-                        return -1;
-                    }
                     struct json_object *status_obj = json_object_object_get(event_jobj, "Status");
                     
                     if(status_obj){
@@ -830,11 +784,6 @@ int run(){
                         sprintf(action_string, "%s", json_object_get_string(action_obj));
                         if(!strcmp("updated", action_string)){
                             struct json_object *ident_obj = json_object_object_get(event_jobj, "Id");
-                            ret = send_command(cmdbytes, sizeof(cmdbytes));
-                            if (ret == -1)
-                            {
-                                return -1;
-                            }
                             if(ident_obj){
                                 struct json_object *ident_services_obj = json_object_object_get(ident_obj, "Services");
                                 if(ident_services_obj){
