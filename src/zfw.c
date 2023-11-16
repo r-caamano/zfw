@@ -47,7 +47,7 @@
 #define MAX_INDEX_ENTRIES                   100 // MAX port ranges per prefix
 #define MAX_TABLE_SIZE                      65536  // PORT Mapping table size
 #define MAX_IF_LIST_ENTRIES                 3
-#define MAX_IF_ENTRIES                      30
+#define MAX_IF_ENTRIES                      256
 #define MAX_ADDRESSES                       10
 #define IP_HEADER_TOO_BIG                   1
 #define NO_IP_OPTIONS_ALLOWED               2
@@ -163,6 +163,7 @@ void open_rb_map();
 void open_tun_map();
 bool interface_map();
 void close_maps(int code);
+void if_delete_key(uint32_t key);
 char * get_ts(unsigned long long tstamp);
 
 struct ifindex_ip4
@@ -1212,7 +1213,7 @@ void interface_diag()
                 address = address->ifa_next;
                 continue;
             }
-            if (echo) //&& strncmp(address->ifa_name,"tun", 3) && strncmp(address->ifa_name,"ziti", 4))
+            if (echo)
             {
                 if (!strcmp(echo_interface, address->ifa_name))
                 {
@@ -1318,6 +1319,53 @@ void interface_diag()
     return 0;
 }*/
 
+//remove stale ifindex_ip_map entries
+int prune_if_map(uint32_t if_array[], uint32_t if_count){
+    if(if_fd == -1){
+        open_if_map();
+    }
+    uint32_t init_key = {0};
+    uint32_t *key = &init_key;
+    uint32_t current_key;
+    struct ifindex_ip4 o_ifip4;
+    if_map.file_flags = BPF_ANY;
+    if_map.map_fd = if_fd;
+    if_map.key = (uint64_t)key;
+    if_map.value = (uint64_t)&o_ifip4;
+    int lookup = 0;
+    int ret = 0;
+    int rule_count;
+    while (true)
+    {
+        ret = syscall(__NR_bpf, BPF_MAP_GET_NEXT_KEY, &if_map, sizeof(if_map));
+        if (ret == -1)
+        {
+            break;
+        }
+        if_map.key = if_map.next_key;
+        current_key = *(uint32_t *)if_map.key;
+        lookup = syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &if_map, sizeof(if_map));
+        if (!lookup)
+        {
+            bool match = false;
+            for(int x = 0; x < if_count; x++){
+                if(current_key == if_array[x]){
+                    match = true;
+                }
+            }
+            if(!match){
+                if_delete_key(current_key);
+            }
+        }
+        else
+        {
+            printf("Not Found\n");
+        }
+        if_map.key = (uint64_t)&current_key;
+    }
+    return 0;
+}
+
 int add_if_index(uint32_t *idx, char *ifname, in_addr_t ifip[MAX_ADDRESSES], uint8_t count)
 {
     if(if_fd == -1){
@@ -1331,7 +1379,22 @@ int add_if_index(uint32_t *idx, char *ifname, in_addr_t ifip[MAX_ADDRESSES], uin
     int lookup = syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &if_map, sizeof(if_map));
     if (lookup)
     {
-        printf("Unable to access ArrayMap Index\n");
+        for(int x = 0; x < MAX_ADDRESSES; x++){
+            if(x < count){
+                o_ifip4.ipaddr[x] = ifip[x];
+            }
+            else{
+                o_ifip4.ipaddr[x] = 0;
+            }
+        }
+        o_ifip4.count = count;
+        sprintf(o_ifip4.ifname, "%s", ifname);
+        int ret = syscall(__NR_bpf, BPF_MAP_UPDATE_ELEM, &if_map, sizeof(if_map));
+        if (ret)
+        {
+            printf("MAP_UPDATE_ELEM: %s \n", strerror(errno));
+            return 1;
+        }
     }else{
         for(int x = 0; x < MAX_ADDRESSES; x++){
             if(x < count){
@@ -1402,8 +1465,10 @@ bool interface_map()
      *  populate the index into the map with ifindex as the key and ip address
      *  as the value
      */
+    uint32_t index_count = 0;
     uint32_t addr_array[MAX_ADDRESSES];
-    char * cur_name;
+    uint32_t index_array[MAX_ADDRESSES];
+    char *cur_name;
     uint32_t cur_idx;
     uint8_t addr_count = 0;
     while (address)
@@ -1449,6 +1514,8 @@ bool interface_map()
                     addr_count++;
                 }
                 else if(cur_idx != idx){
+                    index_array[index_count] = cur_idx;
+                    index_count++;
                     add_if_index(&cur_idx, cur_name, addr_array, addr_count);
                     addr_count = 0;
                     cur_idx = idx;
@@ -1517,8 +1584,11 @@ bool interface_map()
         address = address->ifa_next;
     }
     if((idx > 0) && (addr_count > 0) && (addr_count <= MAX_ADDRESSES)){
+        index_array[index_count] = cur_idx;
+        index_count++;
         add_if_index(&cur_idx, cur_name, addr_array, addr_count);
     }
+    prune_if_map(index_array, index_count);
     freeifaddrs(addrs);
     return create_route;
 }
@@ -1729,7 +1799,6 @@ void map_insert()
         else
         {
             union bpf_attr count_map;
-            /*path to pinned ifindex_ip_map*/
             memset(&count_map, 0, sizeof(count_map));
             /* set path name with location of map in filesystem */
             count_map.pathname = (uint64_t)count_map_path;
@@ -1783,6 +1852,33 @@ void map_insert()
     {
         printf("MAP_UPDATE_ELEM: %s \n", strerror(errno));
         exit(1);
+    }
+    close(fd);
+}
+
+void if_delete_key(uint32_t key)
+{
+    union bpf_attr map;
+    memset(&map, 0, sizeof(map));
+    map.pathname = (uint64_t)if_map_path;
+    map.bpf_fd = 0;
+    int fd = syscall(__NR_bpf, BPF_OBJ_GET, &map, sizeof(map));
+    if (fd == -1)
+    {
+        printf("BPF_OBJ_GET: %s\n", strerror(errno));
+        exit(1);
+    }
+    // delete element with specified key
+    map.map_fd = fd;
+    map.key = (uint64_t)&key;
+    int result = syscall(__NR_bpf, BPF_MAP_DELETE_ELEM, &map, sizeof(map));
+    if (result)
+    {
+        printf("MAP_DELETE_ELEM: %s\n", strerror(errno));
+    }
+    else
+    {
+        printf("Pruned index %d from ifindex_map\n", key);
     }
     close(fd);
 }
@@ -1897,8 +1993,6 @@ void map_delete()
             else
             {
                 union bpf_attr count_map;
-                /*path to pinned ifindex_ip_map*/
-                const char *count_map_path = "/sys/fs/bpf/tc/globals/tuple_count_map";
                 memset(&count_map, 0, sizeof(count_map));
                 /* set path name with location of map in filesystem */
                 count_map.pathname = (uint64_t)count_map_path;
@@ -1986,8 +2080,6 @@ void map_flush()
     }
     close(fd);
     union bpf_attr count_map;
-    /*path to pinned ifindex_ip_map*/
-    const char *count_map_path = "/sys/fs/bpf/tc/globals/tuple_count_map";
     memset(&count_map, 0, sizeof(count_map));
     /* set path name with location of map in filesystem */
     count_map.pathname = (uint64_t)count_map_path;
@@ -2080,8 +2172,6 @@ void map_list()
 int get_key_count()
 {
     union bpf_attr count_map;
-    /*path to pinned ifindex_ip_map*/
-    const char *count_map_path = "/sys/fs/bpf/tc/globals/tuple_count_map";
     memset(&count_map, 0, sizeof(count_map));
     /* set path name with location of map in filesystem */
     count_map.pathname = (uint64_t)count_map_path;

@@ -29,7 +29,7 @@
 #include <linux/if.h>
 #include <stdio.h>
 
-#define MAX_IF_ENTRIES                30
+#define MAX_IF_ENTRIES                256
 #define BPF_MAX_SESSIONS              10000
 #define IP_HEADER_TOO_BIG             1
 #define NO_IP_OPTIONS_ALLOWED         2
