@@ -1359,7 +1359,7 @@ int add_if_index(struct interface intf)
             open_if_map();
         }
         if_map.map_fd = if_fd;
-        struct ifindex_ip4 o_ifip4 ={0};
+        struct ifindex_ip4 o_ifip4 = {0};
         if_map.key = (uint64_t)&intf.index;
         if_map.flags = BPF_ANY;
         if_map.value = (uint64_t)&o_ifip4;
