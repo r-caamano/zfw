@@ -1647,7 +1647,7 @@ static int process_events(void *ctx, void *data, size_t len){
                 ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, ntohs(evt->sport),
                 daddr, ntohs(evt->dport), ntohs(evt->tport));
             }
-            else if((evt->proto == IPPROTO_TCP) | (evt->proto == IPPROTO_UDP) && evt->tracking_code && ifname){
+            else if(((evt->proto == IPPROTO_TCP) | (evt->proto == IPPROTO_UDP)) && evt->tracking_code && ifname){
                 char *state = NULL;
                 __u16 code = evt->tracking_code;
 
