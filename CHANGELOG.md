@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file. The format 
 
 -- Added support for stateful stateful icmp unreachable inbound support in order to support
    pmtud and unreachable metric collection.
+-- Fixed added ring_buffer__free() to INThandler in zfw.c to properly de-allocate memory 
+   allocated by ring_buffer__new in main() if -M argument was supplied and SIGINT or SIGTERM
+   is received.
 
 # [0.5.3] - 2023-12-19
 

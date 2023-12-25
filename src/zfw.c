@@ -246,6 +246,9 @@ struct tproxy_key
 
 void INThandler(int sig){
     signal(sig, SIG_IGN);
+    if(ring_buffer){
+        ring_buffer__free(ring_buffer);
+    }
     close_maps(1);
 }
 
@@ -1694,6 +1697,32 @@ static int process_events(void *ctx, void *data, size_t len){
                 if(code == 4){
                     printf("%s : %s : %s : %s :%s --> reported next hop mtu:%d > FRAGMENTATION NEEDED IN PATH TO:%s:%d\n", ts, ifname,
                     (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, ntohs(evt->sport), daddr, ntohs(evt->dport));
+                }else{
+                    char *code_string = NULL;
+                    char *protocol_string = NULL;
+                    /*evt->sport is use repurposed store encapsulated higher layer protocol*/
+                    if(evt->sport == IPPROTO_TCP){
+                        protocol_string = "TCP";
+                    }else{
+                        protocol_string = "UDP";
+                    }
+                    if(code == 0){
+                        code_string = "NET UNREACHABLE";
+                    }
+                    else if(code == 1){
+                         code_string = "HOST UNREACHABLE";
+                    }
+                    else if(code == 2){
+                         code_string = "PROTOCOL UNREACHABLE";
+                    }
+                    else if(code == 3){
+                         code_string = "PORT UNREACHABLE";
+                    }
+
+                    if(code_string){
+                        printf("%s : %s : %s : %s :%s --> REPORTED:%s > in PATH TO:%s:%s:%d\n", ts, ifname,
+                         (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, code_string, daddr, protocol_string, ntohs(evt->dport));
+                    }
                 }
             }
             else if(ifname){
@@ -3020,7 +3049,7 @@ int main(int argc, char **argv)
         ring_buffer = ring_buffer__new(rb_fd, process_events, NULL, NULL);
         while(true){
             ring_buffer__poll(ring_buffer, 1000);
-    }
+        }
     }
     else
     {
