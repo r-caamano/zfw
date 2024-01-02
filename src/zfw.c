@@ -149,7 +149,7 @@ char *monitor_interface;
 char *tc_interface;
 char *object_file;
 char *direction_string;
-const char *argp_program_version = "0.5.4";
+const char *argp_program_version = "0.5.5";
 struct ring_buffer *ring_buffer;
 
 __u8 if_list[MAX_IF_LIST_ENTRIES];
@@ -1583,42 +1583,72 @@ bool interface_map()
     return create_route;
 }
 
+int write_log(char *dest, char *source){
+    FILE *dstfile;
+    size_t len = strlen(source);
+    if(len){
+        dstfile = fopen(dest, "a");
+        if(dstfile == NULL){
+            return 1;
+        }
+        fprintf(dstfile, "%s", source);
+        fclose(dstfile);
+    }
+    return 0;
+}
+
 static int process_events(void *ctx, void *data, size_t len){
     struct bpf_event * evt = (struct bpf_event *)data;
     char buf[IF_NAMESIZE];
     char *ifname = if_indextoname(evt->ifindex, buf);
     char *ts = get_ts(evt->tstamp);
+    char message[250];
     if(((ifname && monitor_interface && !strcmp(monitor_interface, ifname)) || all_interface) && ts)
     {
         if(evt->error_code){
             if(evt->error_code == IP_HEADER_TOO_BIG){
-                if(ifname){
-                    printf("%s : %s : %s : IP Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
-                }
+                sprintf(message,"%s : %s : %s : IP Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(evt->error_code == NO_IP_OPTIONS_ALLOWED){
-                printf("%s : %s : %s : No IP Options Allowed\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message, "%s : %s : %s : No IP Options Allowed\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(evt->error_code == UDP_HEADER_TOO_BIG){
-                printf("%s : %s : %s : UDP Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message, "%s : %s : %s : UDP Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(evt->error_code == GENEVE_HEADER_TOO_BIG){
-                printf("%s : %s : %s : Geneve Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message, "%s : %s : %s : Geneve Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(evt->error_code == GENEVE_HEADER_LENGTH_VERSION_ERROR){
-                printf("%s : %s : %s : Geneve Header Length: Version Error\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message,"%s : %s : %s : Geneve Header Length: Version Error\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
             }
             else if(evt->error_code == SKB_ADJUST_ERROR){
-                printf("%s : %s : %s : SKB Adjust Error\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message, "%s : %s : %s : SKB Adjust Error\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(evt->error_code == ICMP_HEADER_TOO_BIG){
-                printf("%s : %s : %s : ICMP Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message, "%s : %s : %s : ICMP Header Too Big\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(evt->error_code == IF_LIST_MATCH_ERROR){
-                printf("%s : %s : %s : Interface did not match and per interface filtering is enabled\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message, "%s : %s : %s : Interface did not match and per interface filtering is enabled\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(evt->error_code == NO_REDIRECT_STATE_FOUND){
-                printf("%s : %s : %s : No Redirect State found\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                sprintf(message, "%s : %s : %s : No Redirect State found\n", ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS");
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
         }   
         else{
@@ -1637,15 +1667,19 @@ static int process_events(void *ctx, void *data, size_t len){
                 char tbuf[IF_NAMESIZE];
                 char *tun_ifname = if_indextoname(evt->tun_ifindex, tbuf);
                 if(tun_ifname){
-                    printf("%s : %s : %s :%s:%d[%x:%x:%x:%x:%x:%x] > %s:%d[%x:%x:%x:%x:%x:%x] redirect ---> %s\n", ts, ifname, protocol,saddr, ntohs(evt->sport),
+                    sprintf(message, "%s : %s : %s :%s:%d[%x:%x:%x:%x:%x:%x] > %s:%d[%x:%x:%x:%x:%x:%x] redirect ---> %s\n", ts, ifname, protocol,saddr, ntohs(evt->sport),
                     evt->source[0], evt->source[1], evt->source[2], evt->source[3], evt->source[4], evt->source[5], daddr, ntohs(evt->dport),
                     evt->dest[0],evt->dest[1], evt->dest[2], evt->dest[3], evt->dest[4], evt->dest[5], tun_ifname);
+                    printf("%s", message);
+                    write_log("/var/log/zfw.log", message);
                 }
             }
             else if(evt->tport && ifname){
-                printf("%s : %s : %s : %s :%s:%d > %s:%d | tproxy ---> 127.0.0.1:%d\n",
+                sprintf(message, "%s : %s : %s : %s :%s:%d > %s:%d | tproxy ---> 127.0.0.1:%d\n",
                 ts, ifname, (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, ntohs(evt->sport),
                 daddr, ntohs(evt->dport), ntohs(evt->tport));
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             else if(((evt->proto == IPPROTO_TCP) | (evt->proto == IPPROTO_UDP)) && evt->tracking_code && ifname){
                 char *state = NULL;
@@ -1688,15 +1722,19 @@ static int process_events(void *ctx, void *data, size_t len){
                     state = "CLIENT_INITIATED_UDP_SESSION";
                 }
                 if(state){
-                    printf("%s : %s : %s : %s :%s:%d > %s:%d outbound_tracking ---> %s\n", ts, ifname,
+                    sprintf(message, "%s : %s : %s : %s :%s:%d > %s:%d outbound_tracking ---> %s\n", ts, ifname,
                     (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, ntohs(evt->sport), daddr, ntohs(evt->dport), state);
+                    printf("%s", message);
+                    write_log("/var/log/zfw.log", message);
                 }
             }
             else if(evt->proto == IPPROTO_ICMP && ifname){
                 __u16 code = evt->tracking_code;
                 if(code == 4){
-                    printf("%s : %s : %s : %s :%s --> reported next hop mtu:%d > FRAGMENTATION NEEDED IN PATH TO:%s:%d\n", ts, ifname,
+                    sprintf(message, "%s : %s : %s : %s :%s --> reported next hop mtu:%d > FRAGMENTATION NEEDED IN PATH TO:%s:%d\n", ts, ifname,
                     (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, ntohs(evt->sport), daddr, ntohs(evt->dport));
+                    printf("%s", message);
+                    write_log("/var/log/zfw.log", message);
                 }else{
                     char *code_string = NULL;
                     char *protocol_string = NULL;
@@ -1720,14 +1758,18 @@ static int process_events(void *ctx, void *data, size_t len){
                     }
 
                     if(code_string){
-                        printf("%s : %s : %s : %s :%s --> REPORTED:%s > in PATH TO:%s:%s:%d\n", ts, ifname,
+                        sprintf(message, "%s : %s : %s : %s :%s --> REPORTED:%s > in PATH TO:%s:%s:%d\n", ts, ifname,
                          (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, code_string, daddr, protocol_string, ntohs(evt->dport));
+                        printf("%s", message);
+                        write_log("/var/log/zfw.log", message);
                     }
                 }
             }
             else if(ifname){
-                printf("%s : %s : %s : %s :%s:%d > %s:%d\n", ts, ifname,
+                sprintf(message, "%s : %s : %s : %s :%s:%d > %s:%d\n", ts, ifname,
                 (evt->direction == INGRESS) ? "INGRESS" : "EGRESS", protocol,saddr, ntohs(evt->sport), daddr, ntohs(evt->dport));
+                printf("%s", message);
+                write_log("/var/log/zfw.log", message);
             }
             if(saddr){
                 free(saddr);

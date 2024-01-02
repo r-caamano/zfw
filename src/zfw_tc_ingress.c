@@ -745,19 +745,17 @@ int bpf_sk_splice(struct __sk_buff *skb){
                         sk = bpf_skc_lookup_tcp(skb, o_session, sizeof(o_session->ipv4),BPF_F_CURRENT_NETNS, 0);
                         if(sk){
                             if (sk->state == BPF_TCP_LISTEN){
-                                if(local_diag->verbose){
-                                    event.proto = IPPROTO_ICMP;
-                                    event.saddr = iph->saddr;
-                                    event.daddr = o_session->ipv4.daddr;
-                                    event.tracking_code = icmph->code;
-                                    if(icmph->code == 4){
-                                        event.sport = icmph->un.frag.mtu;
-                                    }else{
-                                        event.sport = inner_iph->protocol;
-                                    }
-                                    event.dport = o_session->ipv4.dport;
-                                    send_event(&event);
+                                event.proto = IPPROTO_ICMP;
+                                event.saddr = iph->saddr;
+                                event.daddr = o_session->ipv4.daddr;
+                                event.tracking_code = icmph->code;
+                                if(icmph->code == 4){
+                                    event.sport = icmph->un.frag.mtu;
+                                }else{
+                                    event.sport = inner_iph->protocol;
                                 }
+                                event.dport = o_session->ipv4.dport;
+                                send_event(&event);
                                 bpf_sk_release(sk);
                                 return TC_ACT_OK;
                             }
@@ -772,19 +770,17 @@ int bpf_sk_splice(struct __sk_buff *skb){
                         oudp_session.ipv4.sport = o_session->ipv4.dport;
                         sk = bpf_sk_lookup_udp(skb, &oudp_session, sizeof(oudp_session.ipv4), BPF_F_CURRENT_NETNS, 0);
                         if(sk){
-                            if(local_diag->verbose){
-                                event.proto = IPPROTO_ICMP;
-                                event.saddr = iph->saddr;
-                                event.daddr = o_session->ipv4.daddr;
-                                event.tracking_code = icmph->code;
-                                if(icmph->code == 4){
-                                    event.sport = icmph->un.frag.mtu;
-                                }else{
-                                    event.sport = inner_iph->protocol;
-                                }
-                                event.dport = o_session->ipv4.dport;
-                                send_event(&event);
+                            event.proto = IPPROTO_ICMP;
+                            event.saddr = iph->saddr;
+                            event.daddr = o_session->ipv4.daddr;
+                            event.tracking_code = icmph->code;
+                            if(icmph->code == 4){
+                                event.sport = icmph->un.frag.mtu;
+                            }else{
+                                event.sport = inner_iph->protocol;
                             }
+                            event.dport = o_session->ipv4.dport;
+                            send_event(&event);
                             bpf_sk_release(sk);
                             return TC_ACT_OK;
                         }
