@@ -369,7 +369,7 @@ if(status.returncode):
         os.system("/opt/openziti/bin/user/user_rules.sh")
 else:
     print("ebpf already running!");
-    os.system("/usr/sbin/zfw -F")
+    os.system("/usr/sbin/zfw -F -r")
     print("Flushed Table")
     for i in internal_list:
         if(not tc_status(i, "ingress")):
