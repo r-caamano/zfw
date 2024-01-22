@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file. The format 
 
 -- Modified the "zfw -F" system call in start_ebpf_py.py to "zfw -F -r" to ensure that any ziti created loopback routes are also
    cleared when restarting ziti-router.  
+-- Removed deprecated sed entries in start_ebpf_router.py that are no longer required
+-- Fixed inaccurate string parse check in start_ebpf_router.py set_local_rules()
 
 # [0.5.6] - 2024-01-19
 
